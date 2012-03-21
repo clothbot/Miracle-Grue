@@ -39,11 +39,11 @@ namespace mgl // serious about triangles
 //
 // Exception class for meshy problems
 //
-class MeshyMess : public Messup
+class MeshyException : public Exception
 {
 public:
-	MeshyMess(const char *msg)
-	 :Messup(msg)
+	MeshyException(const char *msg)
+	 :Exception(msg)
 	{
 
 	}
@@ -78,7 +78,7 @@ public:
 		{
 			std::stringstream ss;
 			ss << "Can't open \"" << fileName << "\"";
-			MeshyMess problem(ss.str().c_str());
+			MeshyException problem(ss.str().c_str());
 			throw (problem);
 		}
 
@@ -99,36 +99,41 @@ public:
 		out << "    vertex " << t[0].x << " " << t[0].y << " " << t[0].z << std::endl;
 		out << "    vertex " << t[1].x << " " << t[1].y << " " << t[1].z << std::endl;
 		out << "    vertex " << t[2].x << " " << t[2].y << " " << t[2].z << std::endl;
-		out << "  end loop" << std::endl;
-		out << " end facet" << std::endl;
+		out << "  endloop" << std::endl;
+		out << " endfacet" << std::endl;
 	}
 
 	void close()
 	{
-		out << "end solid " << solidName << std::endl;
+		out << "endsolid " << solidName << std::endl;
 		out.close();
 	}
 
 };
 
 
-// A Mesh class, but sort of messy
-// This one has triangles, and a slice table.
+/**
+ *
+ * A Mesh class
+ */
 class Meshy
 {
 
-	mgl::Limits limits;
-	std::vector<Triangle3>  allTriangles;
+	mgl::Limits limits; 	/// Bounding box for the model
+	std::vector<Triangle3>  allTriangles; /// every triangle in the model.
+	/// for each slice, a list of indicies, each index is a lookup into vector
+	// allTriangles
 	SliceTable sliceTable;
-	LayerMeasure zTapeMeasure; // Ze tape measure, for Z
+
+	// Ze tape measure, for Z
+	LayerMeasure zTapeMeasure;
 
 public:
 
 
 	Meshy(Scalar firstSliceZ, Scalar layerH)
 		:zTapeMeasure(firstSliceZ, layerH)
-	{
-	}
+	{ 	}
 
 	const std::vector<Triangle3> &readAllTriangles() const
 	{
@@ -211,6 +216,20 @@ public:
 
 public:
 
+	void writeStlFile(const char* fileName) const
+	{
+		StlWriter out;
+		out.open(fileName);
+		size_t triCount = allTriangles.size();
+		for (size_t i= 0; i < triCount; i++)
+		{
+			const Triangle3 &t = allTriangles[i];
+			out.writeTriangle(t);
+		}
+		out.close();
+		// cout << fileName << " written!"<< std::endl;
+
+	}
 
 	void writeStlFileForLayer(unsigned int layerIndex, const char* fileName) const
 	{
@@ -232,7 +251,7 @@ public:
 };
 
 
-
+size_t writeMeshyToStl(mgl::Meshy &meshy, const char* filename);
 
 size_t loadMeshyFromStl(mgl::Meshy &meshy, const char* filename);
 

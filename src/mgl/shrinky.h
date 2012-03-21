@@ -15,23 +15,23 @@
 
 
 
-#include "core.h"
+#include "mgl.h"
 #include "segment.h"
 #include "scadtubefile.h"
 
-namespace mgl // Miracle-Grue's geometry library
+namespace mgl
 {
 
 
 
-
-class ShrinkyMess : public Messup {	public: ShrinkyMess(const char *msg) :Messup(msg){}};
+/// Exception for Shrinky errors
+class ShrinkyException : public Exception {
+	public: ShrinkyException(const char *msg) :Exception(msg){};
+};
 
 
 class Shrinky
 {
-
-
 	const char *scadFileName;
 
 	Scalar scadZ ;
@@ -39,39 +39,40 @@ class Shrinky
 	unsigned int counter;
 
     void writeScadBisectors(const std::vector<Vector2> & bisectors,
-    						const std::vector<TriangleSegment2> & originalSegments);
+    						const std::vector<LineSegment2> & originalSegments);
 
     void writeScadSegments(	const char* segNames,
 							const char* prefix,
-							const std::vector<TriangleSegment2> & segments);
+							const std::vector<LineSegment2> & segments);
 
-    void openScadFile(const char *scadFileName);
     void closeScadFile();
 public:
-	Scalar dz;
+    Scalar dz;
 	ScadTubeFile fscad;
 public:
 	Shrinky( const char *scadFileName=NULL);
 
-//	void insetClassic(const std::vector<TriangleSegment2> & segments,
+	void openScadFile(const char *scadFileName);
+
+//	void insetClassic(const std::vector<LineSegment2d> & segments,
 //							Scalar insetDist,
 //								Scalar cutoffLength,
-//									std::vector<TriangleSegment2> & finalInsets);
+//									std::vector<LineSegment2d> & finalInsets);
 
 
 
-	void inset(const std::vector<TriangleSegment2> & segments,
+	void inset(const std::vector<LineSegment2> & segments,
 								Scalar insetDist,
-									std::vector<TriangleSegment2> & finalInsets);
+									std::vector<LineSegment2> & finalInsets);
 
 	~Shrinky();
 
 private:
-	Scalar insetStep(const std::vector<TriangleSegment2> & segments,
+	Scalar insetStep(const std::vector<LineSegment2> & segments,
 							Scalar insetDist,
 								Scalar cutoffLength,
 								bool writeThisStep,
-									std::vector<TriangleSegment2> & finalInsets);
+									std::vector<LineSegment2> & finalInsets);
 };
 
 }

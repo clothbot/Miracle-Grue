@@ -13,13 +13,10 @@
 #include <cppunit/config/SourcePrefix.h>
 #include "ModelReaderTestCase.h"
 
+#include <sys/stat.h>
 
 #include "mgl/connexity.h"
 #include "mgl/configuration.h"
-//#include "mgl/limits.h"
-//#include "mgl/scadtubefile.h"
-//#include "mgl/slicy.h"
-
 #include "mgl/slicy.h"
 
 CPPUNIT_TEST_SUITE_REGISTRATION( ModelReaderTestCase );
@@ -34,6 +31,19 @@ CPPUNIT_ASSERT_EQUAL( 12, 12 );
 CPPUNIT_ASSERT( 12L == 12L );
 */
 
+void ModelReaderTestCase::setUp()
+{
+	std::cout<< "Setup for :" <<__FUNCTION__ << endl;
+	struct stat st;
+	if(stat("outputs",&st) == 0)
+	        printf("outputs is present\n");
+	else {
+		int n=mkdir("outputs",0777);
+		if(n==0) // mkdir succeeded
+			std::cout<< " Starting:" <<__FUNCTION__ << endl;
+	}
+	std::cout<< "Setup for :" <<__FUNCTION__ << " Done" << endl;
+}
 
 
 //
@@ -132,6 +142,10 @@ void ModelReaderTestCase::testMeshySimple()
 	CPPUNIT_ASSERT_DOUBLES_EQUAL(3.6, limits.zMax, tol);
 }
 
+
+
+
+
 void ModelReaderTestCase::testLayerSplit()
 {
 	cout << endl;
@@ -190,6 +204,105 @@ void ModelReaderTestCase::testMeshyLoad()
 	mesh2.dump(cout);
 }
 
+void ModelReaderTestCase::testMeshyCycle()
+{
+	unsigned int t0,t1;
+	string target = "inputs/3D_Knot.stl";
+	string drop = "outputs/3D_Knot.stl";
+	string drop2 = "outputs/3D_Knot_v2.stl";
+
+	cout << "Reading test file:"  << target << endl;
+	Meshy mesh3(0.35, 0.35);
+	t0=clock();
+	loadMeshyFromStl(mesh3, target.c_str());
+	t1=clock()-t0;
+//	mesh3.dump(cout);
+	cout << "Read: " << target <<" in seconds: " << t1 << endl;
+	cout << "Writing test file:"  << drop << endl;
+	writeMeshyToStl(mesh3, drop.c_str());
+	unsigned int t2=clock()-t1;
+	cout << "Wrote: " << drop <<" in seconds: " << t2 << endl;
+
+	cout << "Reload test, reloading file: "  << drop << endl;
+	Meshy mesh4(0.35, 0.35);
+	t0=clock();
+	loadMeshyFromStl(mesh4, drop.c_str());
+	t1=clock()-t0;
+	cout << "Re-Read: " << target <<" in seconds: " << t1 << endl;
+//	CPP_UNIT_ASSERT(mesh3 == mesh4);
+	cout << "Writing test file: "  << drop2 << endl;
+	writeMeshyToStl(mesh4, drop2.c_str());
+	t2=clock()-t1;
+	cout << "Wrote: " << drop2 <<" in seconds: " << t2 << endl;
+
+}
+
+void ModelReaderTestCase::testMeshyCycleNull()
+{
+	unsigned int t0,t1;
+	string target = "inputs/Null.stl";
+	string drop = "outputs/Null.stl";
+	string drop2 = "outputs/Null_v2.stl";
+
+	cout << "Reading test file:"  << target << endl;
+	Meshy mesh3(0.35, 0.35);
+	t0=clock();
+	loadMeshyFromStl(mesh3, target.c_str());
+	t1=clock()-t0;
+//	mesh3.dump(cout);
+	cout << "Read: " << target <<" in seconds: " << t1 << endl;
+	cout << "Writing test file:"  << drop << endl;
+	writeMeshyToStl(mesh3, drop.c_str());
+	unsigned int t2=clock()-t1;
+	cout << "Wrote: " << drop <<" in seconds: " << t2 << endl;
+
+	cout << "Reload test, reloading file: "  << drop << endl;
+	Meshy mesh4(0.35, 0.35);
+	t0=clock();
+	loadMeshyFromStl(mesh4, drop.c_str());
+	t1=clock()-t0;
+	cout << "Re-Read: " << target <<" in seconds: " << t1 << endl;
+//	CPP_UNIT_ASSERT(mesh3 == mesh4);
+	cout << "Writing test file: "  << drop2 << endl;
+	writeMeshyToStl(mesh4, drop2.c_str());
+	t2=clock()-t1;
+	cout << "Wrote: " << drop2 <<" in seconds: " << t2 << endl;
+}
+
+void ModelReaderTestCase::testMeshyCycleMin()
+{
+	unsigned int t0,t1;
+	string target = "inputs/OneTriangle.stl";
+	string drop = "outputs/OneTriangl.stl";
+	string drop2 = "outputs/OneTriangl_v2.stl";
+
+	cout << "Reading test file:"  << target << endl;
+	Meshy mesh3(0.35, 0.35);
+	t0=clock();
+	loadMeshyFromStl(mesh3, target.c_str());
+	t1=clock()-t0;
+//	mesh3.dump(cout);
+	cout << "Read: " << target <<" in seconds: " << t1 << endl;
+	cout << "Writing test file:"  << drop << endl;
+	writeMeshyToStl(mesh3, drop.c_str());
+	unsigned int t2=clock()-t1;
+	cout << "Wrote: " << drop <<" in seconds: " << t2 << endl;
+
+	cout << "Reload test, reloading file: "  << drop << endl;
+	Meshy mesh4(0.35, 0.35);
+	t0=clock();
+	loadMeshyFromStl(mesh4, drop.c_str());
+	t1=clock()-t0;
+	cout << "Re-Read: " << target <<" in seconds: " << t1 << endl;
+//	CPP_UNIT_ASSERT(mesh3 == mesh4);
+	cout << "Writing test file: "  << drop2 << endl;
+	writeMeshyToStl(mesh4, drop2.c_str());
+	t2=clock()-t1;
+	cout << "Wrote: " << drop2 <<" in seconds: " << t2 << endl;
+
+}
+
+
 void ModelReaderTestCase::testSlicyWater()
 {
 	Meshy mesh(0.35, 0.35);
@@ -233,7 +346,7 @@ Vector2 rotateAroundPoint(const Vector2 &center, Scalar angle, const Vector2 &p)
 	// translate point back to origin:
 	Vector2 translated = p - center;
 
-	Vector2 rotated = rotate2d(translated, angle);
+	Vector2 rotated = translated.rotate2d( angle );
 	// translate point back:
 	Vector2 r = rotated + center;
 	return r;
@@ -358,6 +471,7 @@ void batchProcess(	Scalar firstLayerZ,
 					const char* outDir,
 					const std::vector<std::string> &models)
 {
+	bool writeDebugScadFiles = true;
 	FileSystemAbstractor fileSystem;
 	std::vector<double> times;
 	for (int i=0; i < models.size(); i++)
@@ -406,6 +520,7 @@ void batchProcess(	Scalar firstLayerZ,
 											2 * layerW,
 											infillShrinking,
 											insetDistanceFactor,
+											writeDebugScadFiles,
 											slice);
 			if(!hazNewPaths)
 			{
@@ -445,21 +560,21 @@ void ModelReaderTestCase::testMyStls()
 	models.push_back("inputs/Water.stl");
 	models.push_back("inputs/hexagon.stl");
 	models.push_back("inputs/Land.stl");
-	models.push_back("../stls/monitor_simple.stl");
-	models.push_back("../stls/F1.stl");
-	models.push_back("../stls/hexagon.stl");
-	models.push_back("../stls/Land.stl");
-	models.push_back("../stls/Roal10.stl");
-	models.push_back("../stls/soap_highres.stl");
-	models.push_back("../stls/TeaPot.stl");
-	models.push_back("../stls/Water.stl");
-	models.push_back("../stls/Yodsta_Printdata.stl");
+//	models.push_back("../stls/monitor_simple.stl");
+//	models.push_back("../stls/F1.stl");
+//	models.push_back("../stls/hexagon.stl");
+//	models.push_back("../stls/Land.stl");
+//	models.push_back("../stls/Roal10.stl");
+//	models.push_back("../stls/soap_highres.stl");
+//	models.push_back("../stls/TeaPot.stl");
+//	models.push_back("../stls/Water.stl");
+//	models.push_back("../stls/Yodsta_Printdata.stl");
 
 	Scalar infillShrinking = 0.35;
 	Scalar insetDistanceFactor = 0.8;
 	//models.push_back("Pivot-Joint_-_Ball_End_-1X");
 	//models.push_back("Toymaker_Skull_1_Million_Polys");
-	//	models.push_back("part2");
+	//models.push_back("part2");
 
 	batchProcess(firstLayerZ, layerH, layerW, tubeSpacing, infillShrinking,
 							insetDistanceFactor, outDir.c_str(), models);
@@ -555,7 +670,7 @@ void ModelReaderTestCase::fixContourProblem()
 	const SliceTable &sliceTable = mesh.readSliceTable();
 	const TriangleIndices &trianglesForSlice = sliceTable[30];
 
-	std::vector<TriangleSegment2> segments;
+	std::vector<LineSegment2> segments;
 	// get 2D paths for outline
 	segmentationOfTriangles(trianglesForSlice, allTriangles, z, segments);
 	SegmentTable outlinesSegments;
@@ -706,18 +821,18 @@ void slicyTest()
 
 
 	const Face &face = connexity.readFaces()[0];
-	TriangleSegment2 cut;
+	LineSegment2 cut;
 	bool success = connexity.cutFace(z, face, cut);
 	cout << "FACE cut " << cut.a << " to " << cut.b << endl;
 	CPPUNIT_ASSERT(success);
 
-	list<TriangleSegment2> loop;
+	list<LineSegment2> loop;
 	connexity.splitLoop(z, faces, loop);
 
 	cout << "First loop has " << loop.size() << " segments" << endl;
 
 	size_t i=0;
-	for(list<TriangleSegment2>::iterator it = loop.begin(); it != loop.end(); it++)
+	for(list<LineSegment2>::iterator it = loop.begin(); it != loop.end(); it++)
 	{
 		cout << i << "] " << it->a << ", " << it->b << endl;
 		i++;

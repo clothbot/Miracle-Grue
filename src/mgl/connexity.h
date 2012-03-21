@@ -18,7 +18,7 @@
 #include <list>
 #include <set>
 
-#include "core.h"
+#include "mgl.h"
 
 namespace mgl // Miracle-Grue's geometry library
 {
@@ -356,7 +356,7 @@ public:
 	index_t cutNextFace(const std::list<index_t> &facesLeft,
 							Scalar z,
 							index_t startFaceIndex,
-							TriangleSegment2& cut) const
+							LineSegment2& cut) const
 	{
 		std::set<index_t> allNeighbors;
 		getAllNeighbors(startFaceIndex, allNeighbors);
@@ -381,7 +381,7 @@ public:
 	}
 
 
-	bool cutFace(Scalar z, const Face &face, TriangleSegment2& cut) const
+	bool cutFace(Scalar z, const Face &face, LineSegment2& cut) const
 	{
 
 
@@ -404,13 +404,13 @@ public:
 		return success;
 	}
 
-	void splitLoop(Scalar z, std::list<index_t> &facesLeft, std::list<TriangleSegment2> &loop) const
+	void splitLoop(Scalar z, std::list<index_t> &facesLeft, std::list<LineSegment2> &loop) const
 	{
 		assert(loop.size() == 0);
 		assert(facesLeft.size() > 0);
 
 		bool firstCutFound = false;
-		TriangleSegment2 cut;
+		LineSegment2 cut;
 
 		index_t faceIndex;
 		while (!firstCutFound)

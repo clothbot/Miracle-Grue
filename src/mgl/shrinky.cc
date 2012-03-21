@@ -18,39 +18,47 @@
 using namespace std;
 using namespace mgl;
 
-double AreaSign(const Vector2 &a, const Vector2 &b, const Vector2 &c)
+
+
+
+
+void lengthCheck(const std::vector<LineSegment2> &segments, const char *msg)
 {
-
-    double area2;
-
-    area2 = (b[0] - a[0] ) * (double)( c[1] - a[1]) -
-            (c[0] - a[0] ) * (double)( b[1] - a[1]);
-
-    return area2;
+	for(unsigned int i=0; i < segments.size(); i++)
+	{
+		const LineSegment2 &seg = segments[i];
+		Scalar l = seg.length();
+		// cout << msg << " seg[" << i << "] = " << seg << " l=" << l << endl;
+		if(!( l > 0 ) )
+		{
+			stringstream ss;
+			ss << msg << " Zero length: segment[" << i << "] = " << seg << endl;
+			ScadTubeFile::segment3(ss,"","segments", segments, 0, 0.1);
+			ShrinkyException mixup(ss.str().c_str());
+			throw mixup;
+		}
+	}
 }
 
-bool convexVertex(const Vector2 &i, const Vector2 &j, const Vector2 &k)
-{
-	return AreaSign(i,j,k) < 0;
-}
 
-std::ostream& mgl::operator << (std::ostream &os, const TriangleSegment2 &s)
-{
-	os << "[ " << s.a << ", " << s.b << "]";
-	return os;
-}
+//void connectivityFix(const std::vector<LineSegment2> &segments,
+//		Scalar tol,
+//		std::vector<LineSegment2> &outs)
+//{
+//
+//}
 
-void connectivityCheck( const std::vector<TriangleSegment2> &segments, Scalar tol,
-						std::vector<TriangleSegment2> &outs)
+void connectivityCheck( const std::vector<LineSegment2> &segments,
+						Scalar tol)
 {
-	outs.reserve(segments.size());
+
 	for(unsigned int i=0; i < segments.size(); i++)
 	{
 		unsigned int prevId = i==0 ? segments.size()-1 : i-1;
-		const TriangleSegment2 &prevSeg = segments[prevId];
-		TriangleSegment2 seg = segments[i];
+		const LineSegment2 &prevSeg = segments[prevId];
+		LineSegment2 seg = segments[i];
 
-		if(!prevSeg.b.sameSame(seg.a, tol) )
+		if(!prevSeg.b.tequals(seg.a, tol) )
 		{
 			Vector2 dist = prevSeg.b - seg.a;
 			stringstream ss;
@@ -62,18 +70,14 @@ void connectivityCheck( const std::vector<TriangleSegment2> &segments, Scalar to
 
 			ss << endl;
 			ScadTubeFile::segment3(ss,"","segments", segments, 0, 0.1);
-			ShrinkyMess mixup(ss.str().c_str());
+			ShrinkyException mixup(ss.str().c_str());
 			throw mixup;
-			// assert(0);
-//			TriangleSegment2 newSeg(prevSeg.b, seg.a);
-	//	outs.push_back(newSeg);
-			//seg.a = prevSeg.b;
+
 		}
-		outs.push_back(seg);
 	}
 }
 
-void createConvexList(const std::vector<TriangleSegment2> &segments, std::vector<bool> &convex)
+void createConvexList(const std::vector<LineSegment2> &segments, std::vector<bool> &convex)
 {
 	Scalar tol=0.3;
 
@@ -81,14 +85,14 @@ void createConvexList(const std::vector<TriangleSegment2> &segments, std::vector
     {
         size_t prevId = id==0 ? segments.size()-1 : id-1;
 
-        const TriangleSegment2 &seg = segments[id];
-        const TriangleSegment2 &prevSeg = segments[prevId];
+        const LineSegment2 &seg = segments[id];
+        const LineSegment2 &prevSeg = segments[prevId];
 
         const Vector2 & i = prevSeg.a;
         const Vector2 & j = seg.a;
         const Vector2 & j2 = prevSeg.b;
         const Vector2 & k = seg.b;
-        bool isSameSame = j.sameSame(j2, tol);
+        bool isSameSame = j.tequals(j2, tol);
 
         if(!isSameSame)
         {
@@ -103,7 +107,7 @@ void createConvexList(const std::vector<TriangleSegment2> &segments, std::vector
         	Scalar distance = d.magnitude();
         	ss << "distance " << distance << endl;
         	ss << "SameSame " << isSameSame << endl;
-        	ShrinkyMess mixup(ss.str().c_str());
+        	ShrinkyException mixup(ss.str().c_str());
         	throw mixup;
 
         }
@@ -113,7 +117,7 @@ void createConvexList(const std::vector<TriangleSegment2> &segments, std::vector
 }
 
 
-void segmentsDiagnostic(const char* title , const std::vector<TriangleSegment2> &segments)
+void segmentsDiagnostic(const char* title , const std::vector<LineSegment2> &segments)
 {
 
 	cout << endl << title << endl;
@@ -122,10 +126,10 @@ void segmentsDiagnostic(const char* title , const std::vector<TriangleSegment2> 
     for(size_t id = 0; id < segments.size(); id++)
     {
 
-        const TriangleSegment2 &seg = segments[id];
+        const LineSegment2 &seg = segments[id];
         size_t prevId = id==0 ? segments.size()-1 : id-1;
 
-        const TriangleSegment2 &prevSeg = segments[prevId];
+        const LineSegment2 &prevSeg = segments[prevId];
 
         const Vector2 & i = prevSeg.a;
         const Vector2 & j = seg.a;
@@ -135,7 +139,7 @@ void segmentsDiagnostic(const char* title , const std::vector<TriangleSegment2> 
         Vector2 d = j2 - j;
         Scalar distance = d.magnitude();
         Scalar length = seg.squaredLength();
-        Scalar angle = angleFromPoint2s(i, j, k);
+        Scalar angle = d.angleFromPoint2s(i, j, k);
         bool vertex = convexVertex(i,j,k);
 
         cout << id << "\t" << vertex << "\t" << length << ",\t" << distance << ",\t" <<  angle << "\t" << seg.a << ", " << seg.b <<"\t" << endl;
@@ -143,7 +147,7 @@ void segmentsDiagnostic(const char* title , const std::vector<TriangleSegment2> 
 }
 
 
-Vector2 getInsetDirection(const TriangleSegment2 &seg)
+Vector2 getInsetDirection(const LineSegment2 &seg)
 {
 	Vector3 v(seg.b.x - seg.a.x, seg.b.y - seg.a.y, 0);
 	Vector3 up(0,0,1);
@@ -153,32 +157,10 @@ Vector2 getInsetDirection(const TriangleSegment2 &seg)
 	return inset2;
 }
 
-TriangleSegment2 elongate(const TriangleSegment2 &s, Scalar dist)
+
+LineSegment2 elongateAndPrelongate(const LineSegment2 &s, Scalar dist)
 {
-	TriangleSegment2 segment(s);
-	Vector2 l = segment.b - segment.a;
-	l.normalise();
-	l *= dist;
-	segment.b += l;
-	return segment;
-}
-
-
-
-TriangleSegment2 prelongate(const TriangleSegment2 &s, Scalar dist)
-{
-	TriangleSegment2 segment(s);
-	Vector2 l = segment.a - segment.b;
-	l.normalise();
-	l *= dist;
-	segment.a += l;
-	return segment;
-}
-
-
-TriangleSegment2 elongateAndPrelongate(const TriangleSegment2 &s, Scalar dist)
-{
-	TriangleSegment2 segment(s);
+	LineSegment2 segment(s);
 	Vector2 l = segment.b - segment.a;
 	l.normalise();
 	l *= dist;
@@ -188,13 +170,13 @@ TriangleSegment2 elongateAndPrelongate(const TriangleSegment2 &s, Scalar dist)
 
 }
 
-void insetSegments(const std::vector<TriangleSegment2> &segments, Scalar d,
-					std::vector<TriangleSegment2> &insets)
+void insetSegments(const std::vector<LineSegment2> &segments, Scalar d,
+					std::vector<LineSegment2> &insets)
 {
 	assert(insets.size() == 0);
 	for(size_t i=0; i<segments.size(); i++)
 	{
-		TriangleSegment2 seg = segments[i];
+		LineSegment2 seg = segments[i];
 		Vector2 inset = getInsetDirection(seg);
 		inset *= d;
 		seg.a += inset;
@@ -204,7 +186,7 @@ void insetSegments(const std::vector<TriangleSegment2> &segments, Scalar d,
 	assert(insets.size() == segments.size());
 }
 
-string segment3(const TriangleSegment2 &s, Scalar z)
+string segment3(const LineSegment2 &s, Scalar z)
 {
 	stringstream ss;
 	ss << "[[" << s.a[0] << ", " << s.a[1] << ", " << z << "], [" <<  s.b[0] << ", " << s.b[1] << ", " << z << "]]";
@@ -212,9 +194,9 @@ string segment3(const TriangleSegment2 &s, Scalar z)
 }
 
 
-void trimConvexSegments(const std::vector<TriangleSegment2> & rawInsets,
+void trimConvexSegments(const std::vector<LineSegment2> & rawInsets,
 						const std::vector<bool> &convex,
-						std::vector<TriangleSegment2> & segments)
+						std::vector<LineSegment2> & segments)
 {
 	assert(segments.size() == 0);
 	segments = rawInsets;
@@ -223,8 +205,8 @@ void trimConvexSegments(const std::vector<TriangleSegment2> & rawInsets,
 	{
 		unsigned int prevId = i==0 ? segments.size()-1 : i-1;
 
-		TriangleSegment2 &currentSegment = segments[i];
-		TriangleSegment2 &previousSegment = segments[prevId];
+		LineSegment2 &currentSegment = segments[i];
+		LineSegment2 &previousSegment = segments[prevId];
 
 		if (convex[i])
 		{
@@ -242,17 +224,17 @@ void trimConvexSegments(const std::vector<TriangleSegment2> & rawInsets,
 				ss << "Trim ERROR: segment " << i << endl;
 				ss << "segments = [  " <<  segment3(previousSegment,0) << " , " << segment3(currentSegment,0) << " ]; " << endl;
 				ss << "color([0,0.5,0,1])loop_segments3(segments, false);" << endl;
-				ShrinkyMess mixup(ss.str().c_str());
+				ShrinkyException mixup(ss.str().c_str());
 				// throw mixup;
 			}
 		}
 	}
 }
 
-void AddReflexSegments(	const std::vector<TriangleSegment2> &segments,
-						const std::vector<TriangleSegment2> &trimmedInsets,
+void AddReflexSegments(	const std::vector<LineSegment2> &segments,
+						const std::vector<LineSegment2> &trimmedInsets,
 						const std::vector<bool> &convexVertices,
-						std::vector<TriangleSegment2> &newSegments)
+						std::vector<LineSegment2> &newSegments)
 {
 	assert(newSegments.size() == 0 );
 	newSegments.reserve(segments.size() * 2);
@@ -266,7 +248,7 @@ void AddReflexSegments(	const std::vector<TriangleSegment2> &segments,
 			Vector2 center = segments[i].a;
 			Vector2 start  = trimmedInsets[prevId].b;
 			Vector2 end    = trimmedInsets[i].a;
-			TriangleSegment2 straight(start, end);
+			LineSegment2 straight(start, end);
 			newSegments.push_back(straight);
 		}
 		newSegments.push_back(trimmedInsets[i] );
@@ -274,28 +256,25 @@ void AddReflexSegments(	const std::vector<TriangleSegment2> &segments,
 
 }
 
-void removeShortSegments(const std::vector<TriangleSegment2> &segments,
+void removeShortSegments(const std::vector<LineSegment2> &segments,
 						 Scalar cutoffLength,
-						 std::vector<TriangleSegment2> &shorts)
+						 std::vector<LineSegment2> &shorts)
 {
 
 	shorts.reserve(segments.size()); // worst case
 	assert(cutoffLength > 0);
-
 	Scalar cutoffLength2 = cutoffLength * cutoffLength;
 
 	for(unsigned int i=0; i < segments.size(); i++)
 	{
-		const TriangleSegment2 &seg = segments[i];
+		const LineSegment2 &seg = segments[i];
 		Scalar length2 = seg.squaredLength();
 		if(length2 > cutoffLength2)
 		{
 			assert(seg.length() >0);
 			shorts.push_back(seg);
 		}
-
 	}
-
 }
 
 void Shrinky::openScadFile(const char *scadFileName)
@@ -322,10 +301,10 @@ Shrinky::Shrinky( const char *scadFileName)
 }
 
 
-bool attachSegments(TriangleSegment2 &first, TriangleSegment2 &second, Scalar elongation)
+bool attachSegments(LineSegment2 &first, LineSegment2 &second, Scalar elongation)
 {
-	TriangleSegment2 s0 = elongateAndPrelongate(first, elongation); // elongate(first, elongation);
-	TriangleSegment2 s1 = elongateAndPrelongate(second, elongation); //prelongate(second, elongation);
+	LineSegment2 s0 = elongateAndPrelongate(first, elongation); // elongate(first, elongation);
+	LineSegment2 s1 = elongateAndPrelongate(second, elongation); //prelongate(second, elongation);
 	Vector2 intersection;
 	bool trimmed = segmentSegmentIntersection(s0, s1, intersection);
 	if(trimmed)
@@ -337,11 +316,13 @@ bool attachSegments(TriangleSegment2 &first, TriangleSegment2 &second, Scalar el
 	return false;
 }
 
-// http://en.wikipedia.org/wiki/Altitude_(triangle)
-// see Altitude in terms of the sides
-//
-// returns the altitude  from side a
-// imputs: the lenght of each side
+/**
+ * Calculates altitude in terms of the sides
+ * http://en.wikipedia.org/wiki/Altitude_(triangle)
+ *
+ * @inputs: the length of 3 triangle sides
+ * @returns the altitude  from side a
+ */
 Scalar triangleAltitude(Scalar a, Scalar b, Scalar c)
 {
 	Scalar s = 0.5 * (a+b+c);
@@ -351,27 +332,25 @@ Scalar triangleAltitude(Scalar a, Scalar b, Scalar c)
 
 // an edged has collapsed when its 2 bisectors intersect
 // at an altitude that is lower than the inset distance
-bool edgeCollapse(const TriangleSegment2& segment,
+bool edgeCollapse(const LineSegment2& segment,
 					const Vector2& bisector0,
 					const Vector2& bisector1,
 					Scalar elongation,
 					Scalar &collapseDistance)
 {
-
-
 	// segment is the base of the triangle
 	// from which we want the altitude
 
-	TriangleSegment2 bisectorSegment0;
+	LineSegment2 bisectorSegment0;
 	bisectorSegment0.a = segment.a;
 	bisectorSegment0.b = segment.a + bisector0;
 
-	TriangleSegment2 bisectorSegment1;
+	LineSegment2 bisectorSegment1;
 	bisectorSegment1.a = segment.b + bisector1;
 	bisectorSegment1.b = segment.b;
 
-	TriangleSegment2 s0 = elongate(bisectorSegment0, elongation);
-	TriangleSegment2 s1 = prelongate(bisectorSegment1, elongation);
+	LineSegment2 s0 = elongate(bisectorSegment0, elongation);
+	LineSegment2 s1 = prelongate(bisectorSegment1, elongation);
 	Vector2 intersection;
 	bool attached = segmentSegmentIntersection(s0, s1, intersection);
 	if(attached)
@@ -385,12 +364,9 @@ bool edgeCollapse(const TriangleSegment2& segment,
 		c = edge1.magnitude();
 
 		collapseDistance = triangleAltitude(a,b,c);
-		if(!collapseDistance>=0)
-		{
-			cout << "collapseDistance=" <<  collapseDistance << endl;
-
+		if(collapseDistance < 0) {
+			assert(0);
 		}
-		assert(collapseDistance>=0);
 		return true;
 	}
 	return false;
@@ -408,23 +384,12 @@ void outMap(const std::multimap<Scalar, unsigned int> &collapsingSegments)
 	}
 }
 
-int popFirstElem(std::multimap<Scalar, unsigned int> &collapsingSegments)
-{
-	if(collapsingSegments.empty())
-		return -1;
-
-	std::multimap<Scalar, unsigned int>::iterator b = collapsingSegments.begin();
-	unsigned int result =  (*b).second;
-	collapsingSegments.erase(b);
-	return result;
-}
 
 
-
-Scalar removeFirstCollapsedSegments(	const std::vector<TriangleSegment2> &originalSegments,
+Scalar removeFirstCollapsedSegments(	const std::vector<LineSegment2> &originalSegments,
 									const std::vector<Vector2> &bisectors,
 									Scalar insetDist,
-									std::vector<TriangleSegment2> &relevantSegments)
+									std::vector<LineSegment2> &relevantSegments)
 {
 	Scalar elongation = 100;
 	assert(relevantSegments.size()==0);
@@ -435,15 +400,15 @@ Scalar removeFirstCollapsedSegments(	const std::vector<TriangleSegment2> &origin
 	multimap<Scalar, unsigned int> collapsingSegments;
 
 	// cout << endl << "removeFirstCollapsedSegments:: looking for collapses" << endl;
-	std::vector<TriangleSegment2> segments =  originalSegments;
+	std::vector<LineSegment2> segments =  originalSegments;
 	for (unsigned int i=0; i < segments.size(); i++)
 	{
 		unsigned int nextId = i==segments.size()-1 ? 0 : i+1;
 
-		const TriangleSegment2 &nextSeg = segments[nextId];
+		const LineSegment2 &nextSeg = segments[nextId];
 		const Vector2 &nextBisector = bisectors[nextId];
 
-		const TriangleSegment2 &currentSegment =  segments[i];
+		const LineSegment2 &currentSegment =  segments[i];
 		const Vector2 &currentBisector = bisectors[i];
 
 		Scalar collapseDistance;
@@ -515,34 +480,17 @@ Scalar removeFirstCollapsedSegments(	const std::vector<TriangleSegment2> &origin
 }
 
 
-bool collinear(const TriangleSegment2 &prev, const TriangleSegment2 &current, Scalar tol, Vector2 &mid)
-{
-
-	Scalar x1 = prev.a[0];
-	Scalar y1 = prev.a[1];
-	mid.x = 0.5 * (prev.b[0] + current.a[0]);
-	mid.y = 0.5 * (prev.b[1] + current.a[1]);
-	Scalar x3 = current.b[0];
-	Scalar y3 = current.b[1];
-
-	Scalar c = ((mid.x - x1) * (y3 - y1) - (x3 - x1) * (mid.y - y1));
-	bool r = sameSame(c, 0, tol);
-	return r;
-}
-
-void elongateAndTrimSegments(const std::vector<TriangleSegment2> & longSegments,
+void elongateAndTrimSegments(const std::vector<LineSegment2> & longSegments,
 					Scalar elongation,
-					std::vector<TriangleSegment2> &segments)
+					std::vector<LineSegment2> &segments)
 {
 	Scalar tol = 1e-6;
 	assert(longSegments.size() > 0);
 
-//	std::vector<TriangleSegment2> segments =longSegments;
-//	segments.reserve(longSegments.size());
-//	cout<< "****" << endl;
+
 
 	// deep copy
-	std::vector<TriangleSegment2>* p =  &segments;
+	std::vector<LineSegment2>* p =  &segments;
 	(*p) = longSegments;
 
 
@@ -552,8 +500,8 @@ void elongateAndTrimSegments(const std::vector<TriangleSegment2> & longSegments,
 	{
 		unsigned int prevId = i==0 ? segments.size()-1 : i-1;
 
-		TriangleSegment2 &previousSegment = segments[prevId];
-		TriangleSegment2 &currentSegment =  segments[i];
+		LineSegment2 &previousSegment = segments[prevId];
+		LineSegment2 &currentSegment =  segments[i];
 
 		if(previousSegment.length()==0)
 			continue;
@@ -561,12 +509,13 @@ void elongateAndTrimSegments(const std::vector<TriangleSegment2> & longSegments,
 			continue;
 
 
-		if (previousSegment.b.sameSame(currentSegment.a, tol))
+		if (previousSegment.b.tequals(currentSegment.a, tol))
 			continue;
 
 		bool attached = attachSegments(previousSegment, currentSegment, elongation);
 		if(!attached)
 		{
+		/*
 			Scalar elong =10;
 			cout << "// ATTACH ERROR in elongateAndTrimSegments!" << endl;
 			cout << "module elongation()" <<  endl;
@@ -579,8 +528,8 @@ void elongateAndTrimSegments(const std::vector<TriangleSegment2> & longSegments,
 			cout << "	prev_length= " << previousSegment.length() <<";" <<  endl;
 			cout << "	currentSegment = " << currentSegment << ";" << endl;
 			cout << "	curr_length= " << currentSegment.length() << ";" << endl;
-			TriangleSegment2 s0 = elongateAndPrelongate(previousSegment, elong );
-			TriangleSegment2 s1 = elongateAndPrelongate(currentSegment, elong );
+			LineSegment2d s0 = elongateAndPrelongate(previousSegment, elong );
+			LineSegment2d s1 = elongateAndPrelongate(currentSegment, elong );
 			cout << "	s0 = " << s0 << ";" << endl;
 			cout << "	s1 = " << s1 << ";" << endl;
 			cout << "	elongation = " << elongation << ";" << endl;
@@ -600,25 +549,24 @@ void elongateAndTrimSegments(const std::vector<TriangleSegment2> & longSegments,
 			cout << ""  << endl;
 			cout << "}" << endl;
 			cout << "//----" << endl << endl;
-
+*/
+			cout << "!";
 		}
 	}
 
 }
 
 
-void createBisectors(const std::vector<TriangleSegment2>& segments,
+void createBisectors(const std::vector<LineSegment2>& segments,
 						Scalar tol,
 						std::vector<Vector2>  &motorCycles)
 {
 	for(unsigned int i=0; i < segments.size(); i++)
 	{
 		unsigned int prevId = i==0 ? segments.size()-1 : i-1;
-		// unsigned int nextId = i==segments.size()-1 ? 0 : i+1;
 
-		const TriangleSegment2 &prevSeg = segments[prevId];
-		const TriangleSegment2 &seg = segments[i];
-		// const TriangleSegment2 &nextSeg = segments[nextId];
+		const LineSegment2 &prevSeg = segments[prevId];
+		const LineSegment2 &seg = segments[i];
 
 		Vector2 prevInset = getInsetDirection(prevSeg);
 		Vector2 inset = getInsetDirection(seg);
@@ -626,7 +574,7 @@ void createBisectors(const std::vector<TriangleSegment2>& segments,
 		Vector2 bisector = inset;
 
 		// if points are disjoint, do not combine both insets
-		if(prevSeg.b.sameSame(seg.a, tol) )
+		if(prevSeg.b.tequals(seg.a, tol) )
 		{
 			bisector += prevInset;
 		}
@@ -642,7 +590,7 @@ void createBisectors(const std::vector<TriangleSegment2>& segments,
 			ss << " and segment[" << i << "].a = " << seg.a << " are distant by " << dist.magnitude();
 			ss << endl;
 			ScadTubeFile::segment3(ss,"","segments", segments, 0, 0.1);
-			ShrinkyMess mixup(ss.str().c_str());
+			ShrinkyException mixup(ss.str().c_str());
 			throw mixup;
 			// assert(0);
 		}
@@ -651,7 +599,7 @@ void createBisectors(const std::vector<TriangleSegment2>& segments,
 			stringstream ss;
 			ss << "Null bisector at segment [" << i << "] position=" << seg.a << endl;
 			ss << " previous_inset=" << prevInset << " inset=" << inset;
-			ShrinkyMess mixup(ss.str().c_str());
+			ShrinkyException mixup(ss.str().c_str());
 			throw mixup;
 		}
 		bisector.normalise();
@@ -660,26 +608,27 @@ void createBisectors(const std::vector<TriangleSegment2>& segments,
 	}
 }
 
-void Shrinky::writeScadBisectors(const std::vector<Vector2> & bisectors, const std::vector<TriangleSegment2> & originalSegments)
+
+void Shrinky::writeScadBisectors(const std::vector<Vector2> & bisectors, const std::vector<LineSegment2> & originalSegments)
 {
     if(scadFileName){
-        std::vector<TriangleSegment2> motorCycleTraces;
+        std::vector<LineSegment2> motorCycleTraces;
         for(size_t i = 0;i < bisectors.size();i++){
             Vector2 a = originalSegments[i].a;
             Vector2 dir = bisectors[i];
             dir *= 2;
             Vector2 b = a + dir;
-            TriangleSegment2 s(a, b);
+            LineSegment2 s(a, b);
             motorCycleTraces.push_back(s);
         }
-        scadZ = fscad.writeSegments3("motorcycles_", "color([0.75,0.5,0.2,1])loop_segments3", motorCycleTraces, scadZ, dz, this->counter);
+        scadZ = fscad.writeSegments3("bisectors_", "color([0.75,0.5,0.2,1])loop_segments3", motorCycleTraces, scadZ, dz, this->counter);
     }
 
 }
 
 void Shrinky::writeScadSegments(const char* segNames,
 								const char* prefix,
-								const std::vector<TriangleSegment2> & segments)
+								const std::vector<LineSegment2> & segments)
 {
 	if(scadFileName)
 	{
@@ -689,9 +638,9 @@ void Shrinky::writeScadSegments(const char* segNames,
 	}
 }
 
-void Shrinky::inset(const std::vector<TriangleSegment2>& originalSegments,
+void Shrinky::inset(const std::vector<LineSegment2>& originalSegments,
 								Scalar insetDist,
-								std::vector<TriangleSegment2> &finalInsets)
+								std::vector<LineSegment2> &finalInsets)
 {
 	bool writePartialSteps = true;
 
@@ -705,22 +654,21 @@ void Shrinky::inset(const std::vector<TriangleSegment2>& originalSegments,
 	Scalar tol = 1e-6; // for continuity testing and distance to go
 	Scalar distanceToGo = insetDist;
 
-	std::vector<TriangleSegment2> initialSegs = originalSegments;
+	std::vector<LineSegment2> initialSegs = originalSegments;
 
 	bool done = false;
 	//cout << "INSET " << endl;
 	while (!done)
 	{
-		std::vector<TriangleSegment2> connected;
-		connectivityCheck(initialSegs, tol, connected);
+		connectivityCheck(initialSegs, tol);
 
 		//cout << " ** distance to go: " <<  distanceToGo << endl;
 		finalInsets.clear();
 
-		Scalar distanceGone = insetStep(connected, distanceToGo, tol, writePartialSteps, finalInsets);
+		Scalar distanceGone = insetStep(initialSegs, distanceToGo, tol, writePartialSteps, finalInsets);
 
 		distanceToGo -= distanceGone;
-		if( sameSame(distanceToGo, 0, tol))
+		if( tequals(distanceToGo, 0, tol))
 		{
 		//	cout << " ** INSET Done!" << endl;
 			done = true;
@@ -739,11 +687,11 @@ void Shrinky::inset(const std::vector<TriangleSegment2>& originalSegments,
 	//cout << "Thank you:  " << finalInsets.size() << endl;
 }
 
-Scalar Shrinky::insetStep(const std::vector<TriangleSegment2>& originalSegments,
+Scalar Shrinky::insetStep(const std::vector<LineSegment2>& originalSegments,
 								Scalar insetDist,
 								Scalar continuityTolerance,
 								bool writePartialStep,
-								std::vector<TriangleSegment2> &finalInsets)
+								std::vector<LineSegment2> &finalInsets)
 {
 	// magic numbers
 	Scalar elongation = insetDist * 100; // continuityTolerance * 5;
@@ -759,7 +707,7 @@ Scalar Shrinky::insetStep(const std::vector<TriangleSegment2>& originalSegments,
 		stringstream ss;
 		ss <<  "1 line segment is not enough to create a closed polygon";
 		assert(0);
-		ShrinkyMess mixup(ss.str().c_str());
+		ShrinkyException mixup(ss.str().c_str());
 		throw mixup;
 	}
 
@@ -784,7 +732,7 @@ Scalar Shrinky::insetStep(const std::vector<TriangleSegment2>& originalSegments,
 	        scadZ = dzBefore;
 	    }
 
-	    std::vector<TriangleSegment2> relevantSegments;
+	    std::vector<LineSegment2> relevantSegments;
 	    if(originalSegments.size()>2)
 	    {
 	    	//cout << "...BISECTING..." << endl;
@@ -798,7 +746,7 @@ Scalar Shrinky::insetStep(const std::vector<TriangleSegment2>& originalSegments,
 	    	writeScadSegments("relevants_", "color([0.5,0.5,0,1])", relevantSegments);
 	    }
 
-	    std::vector<TriangleSegment2> insets;
+	    std::vector<LineSegment2> insets;
 		unsigned int relevantCount = relevantSegments.size();
 		if( relevantCount > 2)
 		{
@@ -806,21 +754,24 @@ Scalar Shrinky::insetStep(const std::vector<TriangleSegment2>& originalSegments,
 			insetSegments(relevantSegments, insetStepDistance, insets);
 			if(dumpSteps) segmentsDiagnostic("Insets", insets);
 			writeScadSegments("raw_insets_", "color([1,0,0.4,1])", insets);
+			lengthCheck(insets, "insets");
 		}
 
 
-		std::vector<TriangleSegment2> trims;
+		std::vector<LineSegment2> trims;
 		if(insets.size()>2)
 		{
 			//cout << "...ATTACHING..." << endl;
 			elongateAndTrimSegments(insets, elongation, finalInsets);
-			writeScadSegments("trim_insets_", "color([1,0,0.4,1])", trims);
+			writeScadSegments("final_insets_", "color([0.5,0.5,0.5,1])", finalInsets);
+			lengthCheck(finalInsets, "finalInsets");
 		}
 
 	}
-	catch(ShrinkyMess &mixup)
+	catch(ShrinkyException &mixup)
 	{
-		cout << "ABORT MISSION!!! " << insetStepDistance << ": " << mixup.error << endl;
+		cout << "*";
+		// cout << "ABORT MISSION!!! " << insetStepDistance << ": " << mixup.error << endl;
 		// this is a lie...  but we want to break the loop
 		insetStepDistance = insetDist;
 		throw;
@@ -832,11 +783,12 @@ Scalar Shrinky::insetStep(const std::vector<TriangleSegment2>& originalSegments,
 
 void Shrinky::closeScadFile()
 {
-    if(scadFileName){
+    if(scadFileName)
+    {
         std::ostream & out = fscad.getOut();
         int shells = counter;
         fscad.writeMinMax("draw_outlines", "outlines_", shells);
-        fscad.writeMinMax("draw_motorcycles", "motorcycles_", shells);
+        fscad.writeMinMax("draw_bisectors", "bisectors_", shells);
         fscad.writeMinMax("draw_raw_insets", "raw_insets_", shells);
         //fscad.writeMinMax("draw_trimmed_insets",  "trimmed_insets_", shells);
         fscad.writeMinMax("draw_relevants", "relevants_", shells);
@@ -845,10 +797,9 @@ void Shrinky::closeScadFile()
         out << "max=" << shells-1  << ";" << std::endl;
         out << std::endl;
         out << "draw_outlines(min, max);" << std::endl;
-        out << "draw_motorcycles(min, max);" << std::endl;
+        out << "draw_bisectors(min, max);" << std::endl;
         out << "draw_relevants(min, max);" << std::endl;
         out << "draw_raw_insets(min, max);" << std::endl;
-        //out << "draw_trimmed_insets(min, max);" <<std::endl;
         out << "draw_final_insets(min, max);" << std::endl;
         out << endl;
         out << "// s = [\"segs.push_back(TriangleSegment2(Vector2(%s+x, %s+y), Vector2(%s+x, %s+y)));\" %(x[0][0], x[0][1], x[1][0], x[1][1]) for x in segments]" << std::endl;

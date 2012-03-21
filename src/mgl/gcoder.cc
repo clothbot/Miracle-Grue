@@ -166,7 +166,7 @@ void GCoder::writeHomingSequence(std::ostream &ss)
 	{
 		stringstream ss;
 		ss << "There are no extruders configured. Has the config file been read?";
-		GcoderMess mixup(ss.str().c_str());
+		GcoderException mixup(ss.str().c_str());
 		throw mixup;
 	}
 }
@@ -236,6 +236,7 @@ void GCoder::writeAnchor(std::ostream &ss)
 	double dy = gcoder.platform.waitingPositionY - 0.0;
 
 	gantry.g1(ss, dx, dy, z, 0.2 * anchorFeedRate , NULL);
+	ss << "M102 (Stop extruder)" << endl;
 	ss << endl;
 }
 
@@ -287,7 +288,7 @@ void GCoder::writePolygons(std::ostream& ss,
 		{
 			stringstream ss;
 			ss << "Can't generate gcode for polygon " << i <<" with " << pointCount << " points.";
-			GcoderMess mixup(ss.str().c_str());
+			GcoderException mixup(ss.str().c_str());
 			throw mixup;
 		}
 
@@ -310,19 +311,20 @@ void GCoder::moveZ(ostream & ss, double z, unsigned int  extruderId, double zFee
 
 void GCoder::calcInfillExtrusion(unsigned int extruderId, unsigned int sliceId, Extrusion &extrusion) const
 {
-	Extrusion *p = &extrusion;
-	*p = extruders[extruderId].extrusionProfile;
-
-	extrusion.feedrate *= gantry.scalingFactor;
-	extrusion.flow *= gantry.scalingFactor;
-
-
+	string profileName;
 	if(sliceId == 0)
 	{
-		extrusion.flow *= gcoding.firstLayerExtrudeMultiplier;
-		extrusion.feedrate *= gcoding.firstLayerExtrudeMultiplier;
+		profileName = extruders[extruderId].firstLayerExtrusionProfile;
+	}
+	else
+	{
+		profileName = extruders[extruderId].infillsExtrusionProfile;
 	}
 
+	const std::map<std::string, Extrusion>::const_iterator &it = extrusionProfiles.find(profileName);
+	extrusion = it->second;
+	extrusion.feedrate *= gantry.scalingFactor;
+	extrusion.flow *= gantry.scalingFactor;
 }
 
 void GCoder::calcInSetExtrusion (	unsigned int extruderId,
@@ -331,16 +333,20 @@ void GCoder::calcInSetExtrusion (	unsigned int extruderId,
 										unsigned int insetCount,
 										Extrusion &extrusion) const
 {
-	Extrusion *p = &extrusion;
-	*p = extruders[extruderId].extrusionProfile;
-
-	extrusion.feedrate *= gantry.scalingFactor;
-	extrusion.flow *= gantry.scalingFactor;
+	string profileName;
 	if(sliceId == 0)
 	{
-		extrusion.flow *= gcoding.firstLayerExtrudeMultiplier;
-		extrusion.feedrate *= gcoding.firstLayerExtrudeMultiplier;
+		profileName = extruders[extruderId].firstLayerExtrusionProfile;
 	}
+	else
+	{
+		profileName = extruders[extruderId].insetsExtrusionProfile;
+	}
+
+	const std::map<std::string, Extrusion>::const_iterator &it = extrusionProfiles.find(profileName);
+	extrusion = it->second;
+	extrusion.feedrate *= gantry.scalingFactor;
+	extrusion.flow *= gantry.scalingFactor;
 }
 
 
@@ -363,7 +369,7 @@ void GCoder::writeSlice(ostream& ss, const SliceData& sliceData)
 		{
 		    moveZ(ss, z, extruderId, zFeedrate);
 		}
-		catch(GcoderMess &mixup)
+		catch(GcoderException &mixup)
 		{
 			cout << "ERROR writing Z move in slice " << sliceData.sliceIndex  << " for extruder " << extruderId << " : " << mixup.error << endl;
 		}
@@ -391,7 +397,7 @@ void GCoder::writeSlice(ostream& ss, const SliceData& sliceData)
 				writePolygons(ss, z, extrusion, infills);
 			}
 		}
-		catch(GcoderMess &mixup)
+		catch(GcoderException &mixup)
 		{
 			cout << "ERROR writing infills in slice " << sliceData.sliceIndex  << " for extruder " << extruderId << " : " << mixup.error << endl;
 		}
@@ -406,7 +412,7 @@ void GCoder::writeSlice(ostream& ss, const SliceData& sliceData)
 				writePolygons(ss, z, extrusion, loops);
 			}
 		}
-		catch(GcoderMess &mixup)
+		catch(GcoderException &mixup)
 		{
 			cout << "ERROR writing loops in slice " << sliceData.sliceIndex  << " for extruder " << extruderId << " : " << mixup.error << endl;
 		}
@@ -429,7 +435,7 @@ void GCoder::writeSlice(ostream& ss, const SliceData& sliceData)
 				}
 			}
 		}
-		catch(GcoderMess &mixup)
+		catch(GcoderException &mixup)
 		{
 			cout << "ERROR writing infills in slice " << sliceData.sliceIndex  << " for extruder " << extruderId << " : " << mixup.error << endl;
 		}
@@ -444,7 +450,7 @@ void GCoder::writeSlice(ostream& ss, const SliceData& sliceData)
 				writePolygons(ss, z, extrusion, infills);
 			}
 		}
-		catch(GcoderMess &mixup)
+		catch(GcoderException &mixup)
 		{
 			cout << "ERROR writing infills in slice " << sliceData.sliceIndex  << " for extruder " << extruderId << " : " << mixup.error << endl;
 		}
@@ -467,20 +473,20 @@ void Gantry::g1(std::ostream &ss, double x, double y, double z, double feed, con
 	bool doZ = true;
 	bool doFeed = true;
 
-	if(!mgl::sameSame(this->x, x, SAMESAME_TOL))
+	if(!mgl::tequals(this->x, x, SAMESAME_TOL))
 	{
 		doX = true;
 	}
-	if(!mgl::sameSame(this->y, y, SAMESAME_TOL))
+	if(!mgl::tequals(this->y, y, SAMESAME_TOL))
 	{
 		doY=true;
 	}
-	if(!mgl::sameSame(this->z, z, SAMESAME_TOL))
+	if(!mgl::tequals(this->z, z, SAMESAME_TOL))
 	{
 		doZ=true;
 	}
 
-	if(!mgl::sameSame(this->feed, feed, SAMESAME_TOL))
+	if(!mgl::tequals(this->feed, feed, SAMESAME_TOL))
 	{
 		doFeed=true;
 	}
@@ -522,7 +528,7 @@ void Gantry::g1Motion(std::ostream &ss, double x, double y, double z,
 	{
 		stringstream ss;
 		ss << "G1 without moving where x=" << x << ", y=" << y << ", z=" << z << ", feed=" << feed ;
-		GcoderMess mixup(ss.str().c_str());
+		GcoderException mixup(ss.str().c_str());
 		throw mixup;
 	}
 	#endif
@@ -538,7 +544,7 @@ void Gantry::g1Motion(std::ostream &ss, double x, double y, double z,
 	{
 		stringstream ss;
 		ss << "Illegal G1 move where x=" << x << ", y=" << y << ", z=" << z << ", feed=" << feed ;
-		GcoderMess mixup(ss.str().c_str());
+		GcoderException mixup(ss.str().c_str());
 		throw mixup;
 	}
 

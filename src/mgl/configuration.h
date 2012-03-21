@@ -24,13 +24,13 @@
 #include "json-cpp/include/json/value.h"
 #include "json-cpp/include/json/writer.h"
 
-#include "core.h"
+#include "mgl.h"
 #include "gcoder.h"
 
 namespace mgl
 {
 
-class ConfigMess : public Messup {public: ConfigMess(const char *msg):Messup(msg) {	} };
+class ConfigException : public Exception {public: ConfigException(const char *msg):Exception(msg) {	} };
 
 // checks that the value exist before returning it
 double doubleCheck(const Json::Value &value, const char *name);
@@ -67,7 +67,7 @@ public:
 
 //     		if(filename.length() ==0)
 //     		{
-//     			ConfigMess mixup("Configuration file has not been read");
+//     			ConfigException mixup("Configuration file has not been read");
 //     		    throw mixup;
 //     		}
 
@@ -75,7 +75,7 @@ public:
 //     		{
 //     			std::stringstream ss;
 //     			ss << "Can't find \"" << key << "\" in " << filename;
-//     			ConfigMess mixup(ss.str().c_str());
+//     			ConfigException mixup(ss.str().c_str());
 //     			throw mixup;
 //     		}
      		return this->root[key];
@@ -91,7 +91,7 @@ public:
 };
 
 void loadGCoderData(const Configuration& conf, GCoder &gcoder);
-void loadSlicerDaTa( const Configuration &config, Slicer &slicer);
+void loadSlicerData( const Configuration &config, Slicer &slicer);
 
 }
 #endif /* CONFIGURATION_H_ */

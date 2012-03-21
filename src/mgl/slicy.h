@@ -18,7 +18,7 @@
 #include <list>
 #include <set>
 
-#include "core.h"
+#include "mgl.h"
 #include "meshy.h"
 #include "segment.h"
 #include "scadtubefile.h"
@@ -31,6 +31,19 @@ namespace mgl // Miracle-Grue's geometry library
 // Slicer configuration data
 struct Slicer
 {
+	Slicer()
+	:layerH(0.27),
+	 firstLayerZ(0.1),
+	 tubeSpacing(1),
+	 angle(1.570796326794897),
+	 nbOfShells(2),
+	 layerW(0.4),
+	 infillShrinkingMultiplier(0.25),
+	 insetDistanceMultiplier(0.9),
+	 insetCuttOffMultiplier(0.01),
+	 writeDebugScadFiles(false)
+	{}
+
 	Scalar layerH;
 	Scalar firstLayerZ;
 	Scalar tubeSpacing;
@@ -40,19 +53,18 @@ struct Slicer
 	Scalar infillShrinkingMultiplier;
 	Scalar insetDistanceMultiplier;
 	Scalar insetCuttOffMultiplier;
+	bool writeDebugScadFiles;
 };
 
-
+// slice data for an extruder
 class ExtruderSlice
 {
 public:
 
 	Polygons loops;  // outer perimeter loop
 	Polygons infills;
-
 	std::vector<Polygons> insets;
-
-	Polygons roofing;
+//	Polygons roofing;
 };
 
 ::std::ostream& operator<<(::std::ostream& os, const ExtruderSlice& x);
@@ -91,7 +103,7 @@ class Slicy
 	Scalar tol;
 
 	// we'll record that in a scad file for you
-	ScadTubeFile fscad  ;
+	ScadTubeFile fscad;
 
 	//Mesh info
 	const std::vector<Triangle3> &allTriangles;
@@ -139,6 +151,7 @@ public:
 				Scalar cutoffLength,
 				Scalar infillShrinking,
 				Scalar insetDistanceFactor,
+				bool writeDebugScadFiles,
 				SliceData &slice);
 
 

@@ -27,33 +27,20 @@ using namespace mgl;
 using namespace std;
 
 
-bool mgl::sameSame(Scalar a, Scalar b, Scalar tol)
+bool mgl::tequals(Scalar a, Scalar b, Scalar tol)
 {
 	return SCALAR_ABS(a-b) < tol;
 }
 
-
-// returns the angle between 2 vectors
-Scalar mgl::angleFromVector2s(const Vector2 &a, const Vector2 &b)
-{
-	Scalar dot = a.dotProduct(b);
-	Scalar d1 = a.magnitude();
-	Scalar d2 = b.magnitude();
-	Scalar cosTheta = dot / (d1 * d2);
-	if (cosTheta >  1.0) cosTheta  = 1;
-	if (cosTheta < -1.0) cosTheta = -1;
-	Scalar theta = M_PI - acos(cosTheta);
-	return theta;
-}
-
-// returns the angle between 3 points
-Scalar mgl::angleFromPoint2s(const Vector2 &i, const Vector2 &j, const Vector2 &k)
-{
-	Vector2 a = i - j;
-	Vector2 b = j - k;
-	Scalar theta = angleFromVector2s(a,b);
-	return theta;
-}
+//
+//// returns the angle between 3 points
+//Scalar mgl::angleFromPoint2s(const Vector2 &i, const Vector2 &j, const Vector2 &k)
+//{
+//	Vector2 a = i - j;
+//	Vector2 b = j - k;
+//	Scalar theta = angleFromVector2s(a,b);
+//	return theta;
+//}
 
 
 std::ostream& mgl::operator<<(ostream& os, const mgl::Vector3& v)
@@ -71,23 +58,23 @@ std::ostream& operator<<(std::ostream& os, const Polygon& polygon)
 	return os;
 }
 
-Vector2 mgl::rotate2d(const Vector2 &p, Scalar angle)
-{
-	// rotate point
-	double s = sin(angle); // radians
-	double c = cos(angle);
-	Vector2 rotated;
-	rotated.x = p.x * c - p.y * s;
-	rotated.y = p.x * s + p.y * c;
-	return rotated;
-}
+//Vector2 mgl::rotate2d(const Vector2 &p, Scalar angle)
+//{
+//	// rotate point
+//	Scalar s = SCALAR_SIN(angle); // radians
+//	Scalar c = SCALAR_COS(angle);
+//	Vector2 rotated;
+//	rotated.x = p.x * c - p.y * s;
+//	rotated.y = p.x * s + p.y * c;
+//	return rotated;
+//}
 
 void mgl::rotatePolygon(Polygon& polygon, Scalar angle)
 {
 	for(unsigned int i=0; i<polygon.size(); i++)
 	{
 		const Vector2 &p = polygon[i];
-		polygon[i] = rotate2d(p, angle);
+		polygon[i] = p.rotate2d(angle);
 	}
 }
 
@@ -101,12 +88,12 @@ void mgl::rotatePolygons(Polygons& polygons, Scalar angle)
 }
 
 
-void dumpSegments(const char* prefix, const std::vector<TriangleSegment2> &segments)
+void dumpSegments(const char* prefix, const std::vector<LineSegment2> &segments)
 {
 	cout << prefix << "segments = [ // " << segments.size() << " segments" << endl;
     for(size_t id = 0; id < segments.size(); id++)
     {
-    	TriangleSegment2 seg = segments[id];
+    	LineSegment2 seg = segments[id];
     	cout << prefix << " [[" << seg.a << ", " << seg.b << "]], // " << id << endl;
     }
     cout << prefix << "]" << endl;
@@ -122,7 +109,7 @@ void dumpInsets(const std::vector<SegmentTable> &insetsForLoops)
 
 		for (unsigned int i=0; i <insetTable.size(); i++)
 		{
-			const std::vector<TriangleSegment2 >  &loop = insetTable[i];
+			const std::vector<LineSegment2 >  &loop = insetTable[i];
 			cout << "   inset " << i << ") " << loop.size() << " segments" << endl;
 			dumpSegments("        ",loop);
 		}
@@ -182,14 +169,20 @@ static inline void convertFromLittleEndian16(uint8_t* bytes)
 #endif
 
 
+size_t mgl::writeMeshyToStl(mgl::Meshy &meshy, const char* filename)
+{
+	meshy.writeStlFile(filename);
+}
+
+
 size_t mgl::loadMeshyFromStl(mgl::Meshy &meshy, const char* filename)
 {
 
 	struct vertexes_t {
-		float nx, ny, nz;
-		float x1, y1, z1;
-		float x2, y2, z2;
-		float x3, y3, z3;
+		double nx, ny, nz;
+		double x1, y1, z1;
+		double x2, y2, z2;
+		double x3, y3, z3;
 		uint16_t attrBytes;
 	};
 
@@ -214,7 +207,7 @@ size_t mgl::loadMeshyFromStl(mgl::Meshy &meshy, const char* filename)
 		string msg = "Can't open \"";
 		msg += filename;
 		msg += "\". Check that the file name is correct and that you have sufficient privileges to open it.";
-		MeshyMess problem(msg.c_str());
+		MeshyException problem(msg.c_str());
 		throw (problem);
 	}
 
@@ -222,7 +215,7 @@ size_t mgl::loadMeshyFromStl(mgl::Meshy &meshy, const char* filename)
 		string msg = "\"";
 		msg += filename;
 		msg += "\" is empty!";
-		MeshyMess problem(msg.c_str());
+		MeshyException problem(msg.c_str());
 		throw (problem);
 	}
 	bool isBinary = true;
@@ -236,7 +229,7 @@ size_t mgl::loadMeshyFromStl(mgl::Meshy &meshy, const char* filename)
 			string msg = "\"";
 			msg += filename;
 			msg += "\" is not a valid stl file";
-			MeshyMess problem(msg.c_str());
+			MeshyException problem(msg.c_str());
 			throw (problem);
 		}
 		// Read in triangle count
@@ -244,7 +237,7 @@ size_t mgl::loadMeshyFromStl(mgl::Meshy &meshy, const char* filename)
 			string msg = "\"";
 			msg += filename;
 			msg += "\" is not a valid stl file";
-			MeshyMess problem(msg.c_str());
+			MeshyException problem(msg.c_str());
 			throw (problem);
 		}
 		convertFromLittleEndian32(intdata.bytes);
@@ -280,15 +273,15 @@ size_t mgl::loadMeshyFromStl(mgl::Meshy &meshy, const char* filename)
 			}
 			vertexes_t &v = tridata.vertexes;
 			bool success = true;
-			if (fscanf(f, "%*s %f %f %f", &v.nx, &v.ny, &v.nz) < 3)
+			if (fscanf(f, "%*s %lf %lf %lf", &v.nx, &v.ny, &v.nz) < 3)
 				success = false;
 			if (fscanf(f, "%*s %*s") < 0)
 				success = false;
-			if (fscanf(f, "%*s %f %f %f", &v.x1, &v.y1, &v.z1) < 3)
+			if (fscanf(f, "%*s %lf %lf %lf", &v.x1, &v.y1, &v.z1) < 3)
 				success = false;
-			if (fscanf(f, "%*s %f %f %f", &v.x2, &v.y2, &v.z2) < 3)
+			if (fscanf(f, "%*s %lf %lf %lf", &v.x2, &v.y2, &v.z2) < 3)
 				success = false;
-			if (fscanf(f, "%*s %f %f %f", &v.x3, &v.y3, &v.z3) < 3)
+			if (fscanf(f, "%*s %lf %lf %lf", &v.x3, &v.y3, &v.z3) < 3)
 				success = false;
 			if (fscanf(f, "%*s")< 0)
 				success = false;
@@ -298,7 +291,9 @@ size_t mgl::loadMeshyFromStl(mgl::Meshy &meshy, const char* filename)
 			{
 				stringstream msg;
 				msg << "Error reading face " << facecount << " in file \"" << filename << "\"";
-				MeshyMess problem(msg.str().c_str());
+				MeshyException problem(msg.str().c_str());
+				cout << msg.str().c_str()<< endl;
+				cout << buf << endl;
 				throw(problem);
 			}
 			Triangle3 triangle(Vector3(v.x1, v.y1, v.z1),	Vector3(v.x2, v.y2, v.z2),	Vector3(v.x3, v.y3, v.z3));
@@ -312,6 +307,78 @@ size_t mgl::loadMeshyFromStl(mgl::Meshy &meshy, const char* filename)
 }
 
 
+/**
+ * Assuming the 2d points are on a plane, and that point order indicates a
+ * vector out of that plane, returns magnitude of that vector.
+ *  See Also: Right-hand-rule
+ * Ex: ((0,0)(0,1)(1,0))  returns -1 (normal points negative Z out of plane)
+ * Ex: ((1,0)(0,0)(0,1))  returns 1 (normal points positive Z out of plane)
+ */
+Scalar mgl::AreaSign(const Vector2 &a, const Vector2 &b, const Vector2 &c)
+{
+	Scalar area2;
+    area2 = (b[0] - a[0] ) * (Scalar)( c[1] - a[1]) -
+            (c[0] - a[0] ) * (Scalar)( b[1] - a[1]);
+
+    return area2;
+}
 
 
+/**
+ * @returns true if the triangle of these vectors has a negative index,
+ * false otherwise
+ */
+bool mgl::convexVertex(const Vector2 &i, const Vector2 &j, const Vector2 &k)
+{
+	return AreaSign(i,j,k) < 0;
+}
 
+std::ostream& mgl::operator << (std::ostream &os, const LineSegment2 &s)
+{
+	os << "[ " << s.a << ", " << s.b << "]";
+	return os;
+}
+
+/**
+ * @returns true if the passed line segments are colinear within the tolerance tol
+ */
+bool mgl::collinear(const LineSegment2 &prev, const LineSegment2 &current, Scalar tol, Vector2 &mid)
+{
+
+	Scalar x1 = prev.a[0];
+	Scalar y1 = prev.a[1];
+	mid.x = 0.5 * (prev.b[0] + current.a[0]);
+	mid.y = 0.5 * (prev.b[1] + current.a[1]);
+	Scalar x3 = current.b[0];
+	Scalar y3 = current.b[1];
+
+	Scalar c = ((mid.x - x1) * (y3 - y1) - (x3 - x1) * (mid.y - y1));
+	bool r = tequals(c, 0, tol);
+	return r;
+}
+
+/**
+ * @returns a new LineSegment2, elongated to be normalized to a unit vector
+ */
+LineSegment2 mgl::elongate(const LineSegment2 &s, Scalar dist)
+{
+	LineSegment2 segment(s);
+	Vector2 l = segment.b - segment.a;
+	l.normalise();
+	l *= dist;
+	segment.b += l;
+	return segment;
+}
+
+/**
+ * @returns a new line segment. Of what, I don't know. Wasn't documented.
+ */
+LineSegment2 mgl::prelongate(const LineSegment2 &s, Scalar dist)
+{
+	LineSegment2 segment(s);
+	Vector2 l = segment.a - segment.b;
+	l.normalise();
+	l *= dist;
+	segment.a += l;
+	return segment;
+}
