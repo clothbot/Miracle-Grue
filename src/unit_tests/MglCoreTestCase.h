@@ -24,11 +24,18 @@ class MglCoreTestCase : public CPPUNIT_NS::TestFixture
   CPPUNIT_TEST( Vector2Maths );
 
   CPPUNIT_TEST(testLineSegment2dBasics);
-
   CPPUNIT_TEST( testVector3Basics );
-
   CPPUNIT_TEST( testTriangle3Maths );
+
+  CPPUNIT_TEST( testTequalsPolygon );
+  CPPUNIT_TEST( testTequalsPolygons );
+
+
+  CPPUNIT_TEST( testMeshyLoads );
+
+
   CPPUNIT_TEST_SUITE_END();
+
 
 
 public:
@@ -48,6 +55,14 @@ protected:
  void testVector3Basics();
 
  void testTriangle3Maths();
+
+ void testTequalsPolygon();
+ void testTequalsPolygons();
+
+
+ void testMeshyLoads();
+
+
 };
 
 

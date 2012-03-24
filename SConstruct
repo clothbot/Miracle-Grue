@@ -113,7 +113,7 @@ if operating_system == "Darwin":
 if debug:
     env.Append(CCFLAGS = '-g')
 
-env.Append(CCFLAGS = '-j'+ str(int(jcore_count)))
+#env.Append(CCFLAGS = '-j'+ str(int(jcore_count)))
 
 if  multi_thread:  
     env.Append(CCFLAGS = '-fopenmp')      
@@ -131,13 +131,21 @@ if qt:
 
 mgl_cc = [	'src/mgl/mgl.cc',
 			'src/mgl/configuration.cc', 
+			'src/mgl/Vector2.cc',
+			'src/mgl/Vector3.cc',
+			'src/mgl/Triangle3.cc',
+			'src/mgl/LineSegment2.cc',
+			'src/mgl/Scalar.cc',
 			'src/mgl/gcoder.cc',
 			'src/mgl/shrinky.cc',
 			'src/mgl/slicy.cc',
 			'src/mgl/connexity.cc',
 			'src/mgl/segment.cc',
 			'src/mgl/miracle.cc',
-			'src/mgl/infill.cc',]
+			'src/mgl/infill.cc',
+			'src/mgl/abstractable.cc',
+			'src/mgl/JsonConverter.cc',]
+
 
 json_cc = [ 'src/json-cpp/src/lib_json/json_reader.cpp',
             'src/json-cpp/src/lib_json/json_value.cpp',
@@ -166,6 +174,15 @@ p = env.Program('./bin/miracle_grue',
 		LIBS = ['mgl', '_json'],
 		LIBPATH = default_libs_path,
 		CPPPATH = default_includes)
+
+
+p = env.Program(  	'./bin/unit_tests/jsonConverterUnitTest',   
+				mix(['src/unit_tests/JsonConverterTestCase.cc'], unit_test), 
+    			LIBS = default_libs + debug_libs,
+				LIBPATH = default_libs_path + debug_libs_path, 
+				CPPPATH= ["."] )
+runThisTest(p, run_unit_tests)	
+
 
 p = env.Program(  	'./bin/unit_tests/mglCoreUnitTest',   
 				mix(['src/unit_tests/MglCoreTestCase.cc'], unit_test), 

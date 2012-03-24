@@ -24,8 +24,11 @@
 #include <ctime>
 #include <iostream>
 #include <sstream>
+#include <string>
 
 
+
+// #include "mgl.h"
 namespace mgl {
 
 
@@ -127,7 +130,10 @@ public:
 				+ filenameStr.substr(0, filenameStr.find_last_of('.'));
 	}
 
+	int mkpath(const char *path);
+
 };
+
 
 
 class MyComputer
@@ -135,6 +141,7 @@ class MyComputer
 public:
 	ClockAbstractor clock;
 	FileSystemAbstractor fileSystem;
+
 };
 
 }

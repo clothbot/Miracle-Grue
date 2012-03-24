@@ -15,15 +15,19 @@ using namespace std;
 using namespace mgl;
 
 
+string testCaseInputsDir("test_cases/mglCoreTestCase/inputs/");
+
 
 CPPUNIT_TEST_SUITE_REGISTRATION( MglCoreTestCase );
-
 #include <float.h>
+
+string outputDir("outputs/test_cases/mglCoreTestCase/");
 
 void MglCoreTestCase::setUp()
 {
 	std::cout<< " Starting:" <<__FUNCTION__ << endl;
-	std::cout<< " Exiting:" <<__FUNCTION__ << endl;
+	MyComputer computer;
+	computer.fileSystem.mkpath(outputDir.c_str());
 }
 
 void throwsException(){
@@ -188,3 +192,77 @@ void MglCoreTestCase::testTriangle3Maths() {
 	Vector3 v5(0,0,0);
 	Triangle3 foo2(v0,v1,v2);
 }
+
+
+
+void MglCoreTestCase::testTequalsPolygon()
+{
+	Vector2 v0(0,0),v1(0,1),v2(1,0), v3(0,1);
+	Vector2 v4(0,0.04);
+
+	Polygon p1,p2,p3;
+	p1.push_back(v0);	p1.push_back(v1);	p1.push_back(v2);
+	p2.push_back(v0);	p2.push_back(v1);	p2.push_back(v2);
+	p3.push_back(v0);
+	// sizes mismatch
+	bool same = tequalsPolygonCompare(p1,p3, SCALAR_EPSILON);
+	CPPUNIT_ASSERT(same == false);
+	// same exact poly
+	same = tequalsPolygonCompare(p1,p1, SCALAR_EPSILON);
+	CPPUNIT_ASSERT(same == true);
+	same = tequalsPolygonCompare(p1,p2, SCALAR_EPSILON);
+	CPPUNIT_ASSERT(same == true);
+
+	Vector2 v5(0,0),v6(0,1),v7(1,0), v8(SCALAR_EPSILON*2,1);
+	Polygon p4;
+	p4.push_back(v5);	p4.push_back(v6);	p2.push_back(v7);
+	same = tequalsPolygonCompare(p1,p4, SCALAR_EPSILON);
+	CPPUNIT_ASSERT(same == false);
+
+}
+void MglCoreTestCase::testTequalsPolygons()
+{
+	Vector2 v0(0,0),v1(0,1),v2(1,0), v3(0,1);
+	Vector2 v4(0,0.04);
+
+	Polygon p1,p2,p3;
+	p1.push_back(v0);	p1.push_back(v1);	p1.push_back(v2);
+	p2.push_back(v0);	p2.push_back(v1);	p2.push_back(v2);
+
+	Polygons polys1,polys2, polys3;
+	polys1.push_back(p1);
+	polys1.push_back(p2);
+	polys2.push_back(p2);
+	polys2.push_back(p1);
+	polys3.push_back(p1);
+
+	bool same = tequalsPolygonsCompare(polys1,polys3, SCALAR_EPSILON);
+	CPPUNIT_ASSERT(same == false);
+	same = tequalsPolygonsCompare(polys1,polys1, SCALAR_EPSILON);
+	CPPUNIT_ASSERT(same == true);
+	same = tequalsPolygonsCompare(polys1,polys2, SCALAR_EPSILON);
+	CPPUNIT_ASSERT(same == false);
+}
+
+
+
+void MglCoreTestCase::testMeshyLoads()
+{
+
+	string binaryStl = testCaseInputsDir +"linkCup.stl";
+	cout << "Test: " << __FUNCTION__ << endl;
+	Scalar layer0Z = 0.4, layerZ = 0.2;
+	Meshy mesh(layer0Z,layerZ);
+	size_t loadSize = loadMeshyFromStl(mesh, binaryStl.c_str());
+	cout << binaryStl << " : face count=" << loadSize << endl;
+	CPPUNIT_ASSERT_EQUAL((size_t) 32816, loadSize);
+
+	string asciiStl = testCaseInputsDir +"3D_Knot.stl";
+	cout << "Test: " << __FUNCTION__ << endl;
+	Meshy mesh2(layer0Z,layerZ);
+	loadSize = loadMeshyFromStl(mesh2, asciiStl.c_str());
+	cout << asciiStl <<" : face count=" << loadSize << endl;
+	CPPUNIT_ASSERT_EQUAL((size_t)2892, loadSize);
+
+}
+

@@ -18,6 +18,13 @@
 #include <iostream>
 #include <cassert>
 
+#include "Exception.h"
+#include "Vector2.h"
+#include "Vector3.h"
+#include "LineSegment2.h"
+#include "Triangle3.h"
+
+
 // WIN32 compatibility stuff
 #ifdef WIN32
 
@@ -36,43 +43,6 @@
 namespace mgl
 {
 
-/**
- * base class for all MGL Exceptions
- */
-class Exception
-{
-
-public:
-	std::string error;
-	Exception(const char *msg) :error(msg)
-	{
-		//	std::cerr << std::endl << msg << std::endl;
-		// fprintf(stderr, "%s", msg);
-	}
-
-};
-
-//////////
-// Scalar: Our basic numerical type. double for now;
-///////////
-typedef double Scalar;
-#define SCALAR_SQRT(s) sqrt(s)
-#define SCALAR_ABS(s) abs(s)
-#define SCALAR_ACOS(s) acos(s)
-#define SCALAR_SIN(s) sin(s)
-#define SCALAR_COS(s) cos(s)
-
-// See float.h for details on these
-#define SCALAR_EPSILON DBL_EPSILON
-
-/** (t)olerance (equals)
- * @returns true if two Scalar values are approximately the same using tolerance
- */
-bool tequals(Scalar a, Scalar b, Scalar tol); // = 1e-8
-
-//////////
-// Scalar: End numeric type info
-///////////
 
 // Type used for indexes of triangles/etc for unique indexing
 typedef unsigned int index_t;
@@ -86,39 +56,15 @@ typedef std::vector<index_t> TriangleIndices;
 /// that specified slice.
 typedef std::vector<TriangleIndices> SliceTable;
 
-#include "Vector2.cc"
 
 // Bring over from mgl.cc
 Scalar AreaSign(const Vector2 &a, const Vector2 &b, const Vector2 &c);
 bool convexVertex(const Vector2 &i, const Vector2 &j, const Vector2 &k);
 
 std::ostream& operator << (std::ostream &os,const Vector2 &pt);
+std::ostream& operator << (std::ostream& os, const Vector3& v);
 
 
-#include "LineSegment2.cc"
-
-std::ostream& operator << (std::ostream &os, const LineSegment2 &s);
-
-
-/// List of Lists of line segments. Used to lookup
-/// A SegmentTable may contain, for example, a perimeter
-/// and hole(s) in that perimeter of a slice.
-typedef std::vector< std::vector<LineSegment2 > > SegmentTable;
-
-std::ostream& operator << (std::ostream &os, const LineSegment2 &s);
-
-bool collinear(const LineSegment2 &prev, const LineSegment2 &current, Scalar tol, Vector2 &mid);
-
-LineSegment2 elongate(const LineSegment2 &s, Scalar dist);
-LineSegment2 prelongate(const LineSegment2 &s, Scalar dist);
-
-
-#include "Vector3.cc"
-
-std::ostream& operator<<(std::ostream& os, const Vector3& v);
-
-
-#include "Triangle3.cc"
 
 
 class LayerException : public Exception {
@@ -171,32 +117,28 @@ public:
 	}
 };
 
-
-//
-////
-//// The Slice is a series of tubes
-////
-//// tubes are plastic extrusions
-//class TubesInSlice
-//{
-//public:
-//	TubesInSlice(Scalar z)
-//		:z(z)
-//	{
-//	}
-//
-//	Scalar z;
-//	std::vector<LineSegment2d> infill;
-//	std::vector< std::vector<LineSegment2d> > outlines;
-//};
-
 /// A polygon is an arbitarty collection of 2d points
 typedef std::vector<Vector2> Polygon;
 
-/// A vector of polygon objects
+/// Verifies each Vector2 in the passed Polygon are in tolerance
+// tol
+bool tequalsPolygonCompare(Polygon& poly1, Polygon& poly2, Scalar tol);
+
 typedef std::vector<Polygon> Polygons;
 
+/// Verifies each Polygon in the passed Polygons are in tolerance
+bool tequalsPolygonsCompare(Polygons& poly1, Polygons& poly2, Scalar tol);
+
+
+/// A vector of Polygons objects is a PolygonsGroup
+typedef std::vector<Polygons> PolygonsGroup;
+
+
 std::ostream& operator<<(std::ostream& os, const Polygon& v);
+
+
+inline std::string stringify(double x);
+inline std::string stringify(size_t x);
 
 
 } // namespace
