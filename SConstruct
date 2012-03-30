@@ -95,6 +95,7 @@ if operating_system == "Darwin":
     print " ** CPPUNIT version checK:", commands.getoutput("port info --line cppunit | grep ^cppunit")
 
 debug = get_environment_flag('MG_DEBUG',False)
+debug = True;
 multi_thread = get_environment_flag('MG_MT', False)
 qt =  get_environment_flag('MG_QT',False)
         
@@ -116,7 +117,7 @@ if debug:
 #env.Append(CCFLAGS = '-j'+ str(int(jcore_count)))
 
 if  multi_thread:  
-    env.Append(CCFLAGS = '-fopenmp')      
+    env.Append(CCFLAGS = '-fopenmp -DOMPFF')      
     env.Append(LINKFLAGS = '-fopenmp')    
        
 
@@ -128,7 +129,6 @@ if qt:
 	print "QT modules", qtModules
 	env.EnableQt4Modules(qtModules)
 
-
 mgl_cc = [	'src/mgl/mgl.cc',
 			'src/mgl/configuration.cc', 
 			'src/mgl/Vector2.cc',
@@ -139,13 +139,15 @@ mgl_cc = [	'src/mgl/mgl.cc',
 			'src/mgl/gcoder.cc',
 			'src/mgl/shrinky.cc',
 			'src/mgl/slicy.cc',
+			'src/mgl/meshy.cc',
 			'src/mgl/connexity.cc',
 			'src/mgl/segment.cc',
 			'src/mgl/miracle.cc',
 			'src/mgl/infill.cc',
 			'src/mgl/abstractable.cc',
-			'src/mgl/JsonConverter.cc',]
-
+			'src/mgl/JsonConverter.cc',
+			'src/mgl/insets.cc',
+			'src/mgl/clipper.cc']
 
 json_cc = [ 'src/json-cpp/src/lib_json/json_reader.cpp',
             'src/json-cpp/src/lib_json/json_value.cpp',
@@ -170,11 +172,17 @@ debug_libs_path = ["", ]
 
 
 p = env.Program('./bin/miracle_grue', 
-		mix(['src/morphogen.cc'] ),
+		mix(['src/miracle_grue.cc'] ),
 		LIBS = ['mgl', '_json'],
 		LIBPATH = default_libs_path,
 		CPPPATH = default_includes)
 
+p = env.Program(  	'./bin/unit_tests/clipperUnitTest',   
+				mix(['src/unit_tests/ClipperTestCase.cc',], unit_test), 
+    			LIBS = default_libs + debug_libs,
+				LIBPATH = default_libs_path + debug_libs_path, 
+				 )
+runThisTest(p, run_unit_tests)	
 
 p = env.Program(  	'./bin/unit_tests/jsonConverterUnitTest',   
 				mix(['src/unit_tests/JsonConverterTestCase.cc'], unit_test), 

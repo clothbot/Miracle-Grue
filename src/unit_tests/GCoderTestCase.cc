@@ -226,7 +226,7 @@ void GCoderTestCase::testSimplePath()
 	//	CPPUNIT_ASSERT_EQUAL((size_t)1, config.extruders.size());
 	// create a path message as if received by a pather operation
 
-	SliceData path = SliceData(0.2,0);
+	SliceData path;
 	// add a simple rectangular path for the single extruder
 	initSimplePath(path);
 	std::vector<SliceData> slices;
@@ -242,7 +242,9 @@ void GCoderTestCase::testSimplePath()
 	for(int i = 0; i < slices.size(); i++)
 	{
     	cout.flush();
-		const SliceData &slice = slices[i];
+		SliceData &slice = slices[i];
+		Scalar z = 0.27 *i;
+		slice.updatePosition(z,i);
 		gcoder.writeSlice(gout, slice);
 	}
 
@@ -403,7 +405,7 @@ void GCoderTestCase::testGridPath()
 	// load 1 extruder
 	configureSingleExtruder(config);
 
-	SliceData path = SliceData(0.15,0);
+	SliceData path;
 
 	srand((unsigned int) time(NULL) );
 	int lineCount = 20;
@@ -426,7 +428,9 @@ void GCoderTestCase::testGridPath()
 	for(int i = 0; i < slices.size(); i++)
 	{
     	cout.flush();
-		const SliceData &slice = slices[i];
+		SliceData &slice = slices[i];
+		Scalar z = 0.27 *i;
+		slice.updatePosition(z,i);
 		gcoder.writeSlice(gout, slice);
 	}
 
@@ -467,7 +471,7 @@ void GCoderTestCase::testMultiGrid()
 
 	for(int currentLayer=0; currentLayer < 200; currentLayer++)
 	{
-		SliceData path = SliceData(currentLayer * layerH + firstLayerH,0);
+		SliceData path;
 		if(horizontal)
 			initHorizontalGridPath(path, lowerX, lowerY, dx, dy, 20);
 		else
@@ -479,13 +483,15 @@ void GCoderTestCase::testMultiGrid()
 	std::ofstream gout(SINGLE_EXTRUDER_MULTI_GRID_PATH);
 	GCoder gcoder;
 	gcoder.extruders.push_back(Extruder());
-//	loadGCoderData(config, gcoder);
+	// loadGCoderData(config, gcoder);
 	gcoder.writeStartOfFile(gout, SINGLE_EXTRUDER_MULTI_GRID_PATH);
 
 	for(int i = 0; i < slices.size(); i++)
 	{
     	cout.flush();
-		const SliceData &slice = slices[i];
+		SliceData &slice = slices[i];
+		Scalar z = i * layerH + firstLayerH;
+		slice.updatePosition(z,i);
 		gcoder.writeSlice(gout, slice);
 	}
 

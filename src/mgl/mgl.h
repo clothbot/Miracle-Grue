@@ -10,8 +10,8 @@
 */
 
 
-#ifndef CORE_H_
-#define CORE_H_
+#ifndef MGL_H_
+#define MGL_H_
 
 #include <cmath>
 #include <vector>
@@ -43,6 +43,7 @@
 namespace mgl
 {
 
+std::string getMiracleGrueVersionStr();
 
 // Type used for indexes of triangles/etc for unique indexing
 typedef unsigned int index_t;
@@ -137,8 +138,8 @@ typedef std::vector<Polygons> PolygonsGroup;
 std::ostream& operator<<(std::ostream& os, const Polygon& v);
 
 
-inline std::string stringify(double x);
-inline std::string stringify(size_t x);
+std::string stringify(double x);
+std::string stringify(size_t x);
 
 
 } // namespace

@@ -149,7 +149,7 @@ void ModelReaderTestCase::testLayerSplit()
 
 	Meshy mesh3(0.35, 0.35);
 	string inputFile = inputsDir + "Water.stl";
-	loadMeshyFromStl(mesh, inputFile.c_str() );
+	mesh.readStlFile(inputFile.c_str() );
 	t1=clock()-t0;
 	mesh.dump(cout);
 
@@ -170,7 +170,7 @@ void ModelReaderTestCase::testLargeMeshy()
 	Meshy mesh(0.35, 0.35);
 	t0=clock();
 	string inputFile = inputsDir + "lightsaber.stl";
-	loadMeshyFromStl(mesh, inputFile.c_str() );
+	mesh.readStlFile(inputFile.c_str() );
 	t1=clock()-t0;
 	mesh.dump(cout);
 	cout << "lightsaber read in " << t1 << endl;
@@ -184,7 +184,7 @@ void ModelReaderTestCase::testMeshyLoad()
 	Meshy mesh(0.35, 0.35);
 	t0=clock();
 	string inputFile = inputsDir + "Water.stl";
-	loadMeshyFromStl(mesh, inputFile.c_str() );
+	mesh.readStlFile(inputFile.c_str() );
 	t1=clock()-t0;
 	mesh.dump(cout);
 	cout << "time: " << t1 << endl;
@@ -195,7 +195,7 @@ void ModelReaderTestCase::testMeshyLoad()
 
 	t0=clock();
 	string inputFile2 = inputsDir + "Land.stl";
-	loadMeshyFromStl(mesh2, inputFile2.c_str() );
+	mesh2.readStlFile(inputFile2.c_str() );
 	t1=clock()-t0;
 	cout << "time: " << t1 << endl;
 	CPPUNIT_ASSERT_EQUAL((size_t)174, mesh2.readSliceTable().size());
@@ -212,24 +212,24 @@ void ModelReaderTestCase::testMeshyCycle()
 	cout << "Reading test file:"  << target << endl;
 	Meshy mesh3(0.35, 0.35);
 	t0=clock();
-	loadMeshyFromStl(mesh3, target.c_str());
+	mesh3.readStlFile(target.c_str());
 	t1=clock()-t0;
 //	mesh3.dump(cout);
 	cout << "Read: " << target <<" in seconds: " << t1 << endl;
 	cout << "Writing test file:"  << drop << endl;
-	writeMeshyToStl(mesh3, drop.c_str());
+	mesh3.writeStlFile( drop.c_str() );
 	unsigned int t2=clock()-t1;
 	cout << "Wrote: " << drop <<" in seconds: " << t2 << endl;
 
 	cout << "Reload test, reloading file: "  << drop << endl;
 	Meshy mesh4(0.35, 0.35);
 	t0=clock();
-	loadMeshyFromStl(mesh4, drop.c_str());
+	mesh4.readStlFile( drop.c_str());
 	t1=clock()-t0;
 	cout << "Re-Read: " << target <<" in seconds: " << t1 << endl;
 //	CPP_UNIT_ASSERT(mesh3 == mesh4);
 	cout << "Writing test file: "  << drop2 << endl;
-	writeMeshyToStl(mesh4, drop2.c_str());
+	mesh4.writeStlFile( drop2.c_str());
 	t2=clock()-t1;
 	cout << "Wrote: " << drop2 <<" in seconds: " << t2 << endl;
 
@@ -245,24 +245,24 @@ void ModelReaderTestCase::testMeshyCycleNull()
 	cout << "Reading test file:"  << target << endl;
 	Meshy mesh3(0.35, 0.35);
 	t0=clock();
-	loadMeshyFromStl(mesh3, target.c_str());
+	mesh3.readStlFile(target.c_str());
 	t1=clock()-t0;
 //	mesh3.dump(cout);
 	cout << "Read: " << target <<" in seconds: " << t1 << endl;
 	cout << "Writing test file:"  << drop << endl;
-	writeMeshyToStl(mesh3, drop.c_str());
+	mesh3.writeStlFile( drop.c_str());
 	unsigned int t2=clock()-t1;
 	cout << "Wrote: " << drop <<" in seconds: " << t2 << endl;
 
 	cout << "Reload test, reloading file: "  << drop << endl;
 	Meshy mesh4(0.35, 0.35);
 	t0=clock();
-	loadMeshyFromStl(mesh4, drop.c_str());
+	mesh4.readStlFile( drop.c_str());
 	t1=clock()-t0;
 	cout << "Re-Read: " << target <<" in seconds: " << t1 << endl;
 //	CPP_UNIT_ASSERT(mesh3 == mesh4);
 	cout << "Writing test file: "  << drop2 << endl;
-	writeMeshyToStl(mesh4, drop2.c_str());
+	mesh4.writeStlFile( drop2.c_str());
 	t2=clock()-t1;
 	cout << "Wrote: " << drop2 <<" in seconds: " << t2 << endl;
 }
@@ -277,24 +277,24 @@ void ModelReaderTestCase::testMeshyCycleMin()
 	cout << "Reading test file:"  << target << endl;
 	Meshy mesh3(0.35, 0.35);
 	t0=clock();
-	loadMeshyFromStl(mesh3, target.c_str());
+	mesh3.readStlFile( target.c_str() );
 	t1=clock()-t0;
 //	mesh3.dump(cout);
 	cout << "Read: " << target <<" in seconds: " << t1 << endl;
 	cout << "Writing test file:"  << drop << endl;
-	writeMeshyToStl(mesh3, drop.c_str());
+	mesh3.writeStlFile( drop.c_str());
 	unsigned int t2=clock()-t1;
 	cout << "Wrote: " << drop <<" in seconds: " << t2 << endl;
 
 	cout << "Reload test, reloading file: "  << drop << endl;
 	Meshy mesh4(0.35, 0.35);
 	t0=clock();
-	loadMeshyFromStl(mesh4, drop.c_str());
+	mesh4.readStlFile( drop.c_str());
 	t1=clock()-t0;
 	cout << "Re-Read: " << target <<" in seconds: " << t1 << endl;
 //	CPP_UNIT_ASSERT(mesh3 == mesh4);
 	cout << "Writing test file: "  << drop2 << endl;
-	writeMeshyToStl(mesh4, drop2.c_str());
+	mesh4.writeStlFile(drop2.c_str());
 	t2=clock()-t1;
 	cout << "Wrote: " << drop2 <<" in seconds: " << t2 << endl;
 
@@ -305,7 +305,7 @@ void ModelReaderTestCase::testSlicyWater()
 {
 	Meshy mesh(0.35, 0.35);
 	string target = inputsDir + "Water.stl";
-	loadMeshyFromStl(mesh, target.c_str());
+	mesh.readStlFile( target.c_str());
 
 	const SliceTable& table = mesh.readSliceTable();
 
@@ -439,26 +439,6 @@ void ModelReaderTestCase::testRotate()
 
 
 
-/*
-class Cuts
-{
-	index_t triangle;
-	Vector3 vertices[2]; // the second one is redundent
-};
-
-class Loopy
-{
-	std::list<index_t> triangleIndices;
-	std::list<Cuts> segments;
-};
-
-class LoopPole
-{
-	std::list<index_t> EdgeIndices;
-	// std::list<Point> points;
-};
-
-*/
 
 
 void batchProcess(	Scalar firstLayerZ,
@@ -491,7 +471,7 @@ void batchProcess(	Scalar firstLayerZ,
 
 		Scalar angle = M_PI*0.5;
 		Meshy mesh(firstLayerZ, layerH);
-		loadMeshyFromStl(mesh, modelFile.c_str());
+		mesh.readStlFile( modelFile.c_str());
 		cout << modelFile << " LOADED" << endl;
 		std::vector< SliceData > slices;
 
@@ -506,11 +486,10 @@ void batchProcess(	Scalar firstLayerZ,
 			const TriangleIndices & trianglesForSlice = mesh.readSliceTable()[sliceId];
 			Scalar z = mesh.readLayerMeasure().sliceIndexToHeight(sliceId);
 			Scalar sliceAngle = sliceId * angle;
-			slices.push_back( SliceData(z,sliceId));
+			slices.push_back( SliceData());
 			SliceData &slice = slices[sliceId];
 
 			bool hazNewPaths = slicy.slice( trianglesForSlice,
-											z,
 											sliceId,
 											extruderId,
 											tubeSpacing,
@@ -527,7 +506,6 @@ void batchProcess(	Scalar firstLayerZ,
 				slices.pop_back();
 			}
 		}
-
 
 		t1=clock()-t0;
 		double t = t1 / 1000000.0;
@@ -659,7 +637,7 @@ void ModelReaderTestCase::fixContourProblem()
 
 	Meshy mesh(firstZ, layerH); // 0.35
 	cout << "LOADING... " << endl;
-	loadMeshyFromStl(mesh, "inputs/3D_Knot.stl");
+	mesh.readStlFile( "inputs/3D_Knot.stl");
 
 	Scalar z = zTapeMeasure.sliceIndexToHeight(30);
 
@@ -716,42 +694,42 @@ void ModelReaderTestCase::testLayerMeasure()
 
 	Scalar z = 0;
 	unsigned int abode = n.zToLayerAbove(z);
-	cout << "h=" << z << " layer=" << abode << endl;
+	//cout << "h=" << z << " layer=" << abode << endl;
 	CPPUNIT_ASSERT_EQUAL( (unsigned int) 0, abode);
 
 	z = 0.1;
 	abode = n.zToLayerAbove(z);
-	cout << "h=" << z << " layer=" << abode << endl;
+	//cout << "h=" << z << " layer=" << abode << endl;
 	CPPUNIT_ASSERT_EQUAL( (unsigned int) 0, abode);
 
 	z = 0.11;
 	abode = n.zToLayerAbove(z);
-	cout << "h=" << z << " layer=" << abode << endl;
+	//cout << "h=" << z << " layer=" << abode << endl;
 	CPPUNIT_ASSERT_EQUAL( (unsigned int) 1, abode);
 
 	z = 0.12;
 	abode = n.zToLayerAbove(z);
-	cout << "h=" << z << " layer=" << abode << endl;
+	//cout << "h=" << z << " layer=" << abode << endl;
 	CPPUNIT_ASSERT_EQUAL( (unsigned int) 1, abode);
 
 	z = 0.45;
 	abode = n.zToLayerAbove(z);
-	cout << "h=" << z << " layer=" << abode << endl;
+	//cout << "h=" << z << " layer=" << abode << endl;
 	CPPUNIT_ASSERT_EQUAL( (unsigned int) 1, abode);
 
 	z = 0.46;
 	abode = n.zToLayerAbove(z);
-	cout << "h=" << z << " layer=" << abode << endl;
+	//cout << "h=" << z << " layer=" << abode << endl;
 	CPPUNIT_ASSERT_EQUAL( (unsigned int) 2, abode);
 
 	z = 0.47;
 	abode = n.zToLayerAbove(z);
-	cout << "h=" << z << " layer=" << abode << endl;
+	//cout << "h=" << z << " layer=" << abode << endl;
 	CPPUNIT_ASSERT_EQUAL( (unsigned int) 2, abode);
 
 	z = 1.15999;
 	abode = n.zToLayerAbove(z);
-	cout << "h=" << z << " layer=" << abode << endl;
+	//cout << "h=" << z << " layer=" << abode << endl;
 	CPPUNIT_ASSERT_EQUAL( (unsigned int) 3, abode);
 
 	z = 1.1600001;
@@ -762,7 +740,7 @@ void ModelReaderTestCase::testLayerMeasure()
 	// one million! mouhahahahahaahahahaaha :-)
 	z = 350000.11;
 	abode = n.zToLayerAbove(z);
-	cout << "h=" << z << " layer=" << abode << endl;
+	//cout << "h=" << z << " layer=" << abode << endl;
 	CPPUNIT_ASSERT_EQUAL( (unsigned int) 1000001, abode);
 }
 
@@ -780,7 +758,7 @@ void slicyTest()
     Configuration config;
     initConfig(config);
 	Meshy mesh(config["slicer"]["firstLayerZ"].asDouble(), config["slicer"]["layerH"].asDouble()); // 0.35
-	loadMeshyFromStl(mesh, modelFile.c_str());
+	mesh.readStlFile(modelFile.c_str());
 
 	cout << "file " << modelFile << endl;
 	const SliceTable &sliceTable = mesh.readSliceTable();

@@ -13,164 +13,11 @@
 #include <cstring>
 
 #include "slicy.h"
-
+#include "insets.h"
 
 using namespace mgl;
 using namespace std;
 
-
-
-// segments are OK, but polys are better for paths (no repeat point)
-void segments2polygon(const std::vector<LineSegment2> & segments, mgl::Polygon &loop)
-{
-
-    loop.reserve(segments.size());
-    for(size_t j = 0;j < segments.size();j++){
-        const LineSegment2 & line = segments[j];
-        Vector2 p(line.a);
-        loop.push_back(p);
-        if(j == segments.size() - 1){
-            Vector2 p(line.b);
-            loop.push_back(p);
-        }
-    }
-
-}
-
-//
-// Converts vectors of segments into polygons.
-// The ordering is reversed... the last vector of segments is the first polygon
-// This function fills a a list of poygon (table of Vector2) from a table of segments
-void createPolysFromloopSegments(const SegmentTable &segmentTable,
-										Polygons& loops)
-{
-	// outline loops
-	size_t count = segmentTable.size();
-	for(size_t i=0; i < count; i++)
-	{
-		const std::vector<LineSegment2> &segments = segmentTable[count-1 - i];
-		loops.push_back(Polygon());
-		Polygon &loop = loops[loops.size()-1];
-	    segments2polygon(segments, loop);
-	}
-}
-
-// a) takes in a segment table (i.e a series of loops, clockwise segments for perimeters,
-// and counter clockwise for holes)
-// b) creates nbOfShells insets for each
-// c) stores them in insetsForLoops (a list of segment tables: one table per loop,
-// and nbOffShels insets)
-//
-void inshelligence( const SegmentTable & outlinesSegments,
-					unsigned int nbOfShells,
-					double layerW,
-					unsigned int sliceId,
-					Scalar insetDistanceFactor,
-					const char *scadFile,
-					bool writeDebugScadFiles,
-					std::vector<SegmentTable> &insetsForLoops)
-{
-	assert(insetsForLoops.size() ==0);
-	//
-	//
-	// dbgs__( "outlineSegmentCount " << outlineSegmentCount)
-    for(unsigned int outlineId=0; outlineId < outlinesSegments.size(); outlineId++)
-	{
-    	const std::vector<LineSegment2> &outlineLoop = outlinesSegments[outlineId];
-    	assert(outlineLoop.size() > 0);
-
-		insetsForLoops.push_back(SegmentTable());
-		assert(insetsForLoops.size() == outlineId + 1);
-
-		SegmentTable &insetTable = *insetsForLoops.rbegin(); // inset curves for a single loop
-		insetTable.reserve(nbOfShells);
-		for (unsigned int shellId=0; shellId < nbOfShells; shellId++)
-		{
-			insetTable.push_back(std::vector<LineSegment2>());
-		}
-
-		unsigned int segmentCountBefore =0;
-		unsigned int segmentCountAfter =0;
-
-		vector<Scalar> insetDistances;
-		vector<Scalar> layerWidths;
-
-		insetDistances.reserve(nbOfShells);
-		layerWidths.reserve(nbOfShells);
-
-		unsigned int currentShellIdForErrorReporting=0;
-		try
-		{
-			for (unsigned int shellId=0; shellId < nbOfShells; shellId++)
-			{
-				Scalar insetDistance = shellId ==0? insetDistance = 0.5*layerW: insetDistanceFactor *layerW;
-				insetDistances.push_back(insetDistance);
-				layerWidths.push_back(layerW);
-			}
-			Shrinky shrinky;
-			const vector<LineSegment2> *previousInsets  = &outlineLoop;
-			for (unsigned int shellId=0; shellId < nbOfShells; shellId++)
-			{
-				currentShellIdForErrorReporting = shellId;
-				Scalar insetDistance = insetDistances[shellId];
-				std::vector<LineSegment2> &insets = insetTable[shellId];
-				if((*previousInsets).size() > 2)
-				{
-					shrinky.inset(*previousInsets, insetDistance, insets);
-					previousInsets = &insets;
-				}
-			}
-		}
-		catch(ShrinkyException &messup)
-		{
-			if(writeDebugScadFiles)
-			{
-				static int counter =0;
-				cout << endl;
-				cout << "----- ------ ERROR " << counter <<" ------ ------"<< endl;
-				cout << "sliceId: " <<  sliceId   << endl;
-				cout << "loopId : " <<  outlineId << endl;
-				cout << "shellId: " <<  currentShellIdForErrorReporting   << endl;
-
-				stringstream ss;
-				ss << "_slice_" << sliceId << "_loop_" << outlineId << ".scad";
-
-				MyComputer myComputer;
-				string loopScadFile = myComputer.fileSystem.ChangeExtension(scadFile, ss.str().c_str());
-				Shrinky shriker(loopScadFile.c_str());
-				shriker.dz=0.1;
-				try
-				{
-					std::ostream &scad = shriker.fscad.getOut();
-					scad << "/*" << endl;
-					scad << messup.error;
-					scad << endl << "*/" << endl;
-
-
-					vector<LineSegment2> previousInsets  = outlineLoop;
-					cout << "Creating file: " << loopScadFile << endl;
-					cout << "	Number of points " << previousInsets.size() << endl;
-					ScadTubeFile::segment3(cout,"","segments", previousInsets, 0, 0.1);
-					std::vector<LineSegment2> insets;
-					for (unsigned int shellId=0; shellId < nbOfShells; shellId++)
-					{
-						Scalar insetDistance = insetDistances[shellId];
-						shriker.inset(previousInsets, insetDistance, insets);
-						previousInsets = insets;
-						insets.clear(); // discard...
-					}
-				}
-				catch(ShrinkyException &messup2) // the same excpetion is thrown again
-				{
-					messup2; //ignore
-					cout << "saving " << endl;
-				}
-				cout << "--- --- ERROR " << counter << " END --- ----" << endl;
-				counter ++;
-			}
-		}
-	}
-}
 
 
 Slicy::Slicy(const std::vector<Triangle3> &allTriangles,
@@ -338,8 +185,9 @@ void Slicy::closeScadFile()
 
 }
 
+
+
 bool Slicy::slice(  const TriangleIndices & trianglesForSlice,
-					Scalar z,
 					unsigned int sliceId,
 					unsigned int extruderId,
 					Scalar tubeSpacing,
@@ -351,8 +199,8 @@ bool Slicy::slice(  const TriangleIndices & trianglesForSlice,
 					bool writeDebugScadFiles,
 					SliceData &slice)
 {
-
-    std::vector<LineSegment2> segments;
+	Scalar z = slice.getZHeight();
+	std::vector<LineSegment2> segments;
     segmentationOfTriangles(trianglesForSlice, allTriangles, z, segments);
 	// what we are left with is a series of segments (outline segments... triangle has beens)
 
@@ -371,10 +219,23 @@ bool Slicy::slice(  const TriangleIndices & trianglesForSlice,
 	unsigned int outlineSegmentCount = outlinesSegments.size();
 	createPolysFromloopSegments(outlinesSegments, slice.extruderSlices[extruderId].boundary);
 
-	std::vector<SegmentTable> insetsForLoops;
 
-	if(nbOfShells > 0)
+	//	dumpInsets(insetsForLoops)
+	// create a vector of polygons for each shell.
+	std::vector<Polygons> &insetsPolys = slice.extruderSlices[extruderId].insetLoopsList;
+
+	// deep copy the the infill boundaries
+	// because we are going to rotate them
+	// We pick the innermost succesful inset for each loop
+	SegmentTable innerOutlinesSegments;
+
+	if(nbOfShells == 0)
 	{
+		innerOutlinesSegments = outlinesSegments;
+	}
+	else
+	{
+		std::vector<SegmentTable> insetsForLoops;
 		// create shells inside the outlines (and around holes)
 		inshelligence(outlinesSegments,
 					  nbOfShells,
@@ -383,61 +244,22 @@ bool Slicy::slice(  const TriangleIndices & trianglesForSlice,
 					  insetDistanceFactor,
 					  scadFile,
 					  writeDebugScadFiles,
-					  insetsForLoops);
+					  insetsPolys,
+					  innerOutlinesSegments);
 
-		assert(insetsForLoops.size() == outlineSegmentCount);
-
-		//	dumpInsets(insetsForLoops)
-		// create a vector of polygons for each shell.
-		std::vector<Polygons> &insetsPolys = slice.extruderSlices[extruderId].insetLoopsList;
-
-		// we fill the structure "backwards" so that the inner shells come first
-		for (unsigned int shellId=0; shellId < nbOfShells; shellId++)
-		{
-			insetsPolys.push_back(Polygons());
-		}
-		unsigned int loopCount = insetsForLoops.size();
-		for (unsigned int shellId=0; shellId < nbOfShells; shellId++)
-		{
-			Polygons &polygons = insetsPolys[shellId];
-			for(unsigned int outlineId=0; outlineId <  loopCount; outlineId++)
-			{
-				const std::vector<LineSegment2>& segmentLoop = insetsForLoops[outlineId][nbOfShells -1 - shellId];
-				if(segmentLoop.size() >2)
-				{
-					polygons.push_back(Polygon());
-					Polygon &polygon = *polygons.rbegin();
-					segments2polygon(segmentLoop, polygon);
-				}
-			}
-		}
 	}
 
-	// deep copy the the infill boundaries
-	// because we are going to rotate them
-	// We pick the innermost succesful inset for each loop
-	SegmentTable rotatedSegments; // = outlinesSegments; // insetsForLoops[0];
-	if(insetsForLoops.size() > 0)
-	{
-		for (unsigned int i = 0; i < outlineSegmentCount; ++i)
-		{
-			const std::vector<LineSegment2 > &deppestInset = *insetsForLoops[i].rbegin();
-			rotatedSegments.push_back(deppestInset);
-		}
-	}
-	else
-	{
-		rotatedSegments= outlinesSegments;
-	}
 
-	translateLoops(rotatedSegments, toRotationCenter);
+
+
+	translateLoops(innerOutlinesSegments, toRotationCenter);
 	// rotate the outlines before generating the tubes...
-	rotateLoops(rotatedSegments, sliceAngle);
+	rotateLoops(innerOutlinesSegments, sliceAngle);
 
 	Polygons& infills = slice.extruderSlices[extruderId].infills;
-	infillPathology(rotatedSegments,
+	infillPathology(innerOutlinesSegments,
 					tubularLimits,
-					slice.z,
+					z,
 					tubeSpacing,
 					infillShrinking,
 					infills);
@@ -486,7 +308,7 @@ std::ostream& mgl::operator<<(::std::ostream& os, const ExtruderSlice& x)
 
 std::ostream& mgl::operator<<(::std::ostream& os, const SliceData& x)
 {
-	os << "Slice " << x.sliceIndex << ", z=" << x.z << ", " << x.extruderSlices.size() << " extruders" << endl;
+	os << "Slice " /*<< x.sliceIndex << ", z=" << x.z */ << ", " << x.extruderSlices.size() << " extruders" << endl;
 	for (unsigned int i=0; i< x.extruderSlices.size(); i++)
 	{
 		os << "Extruder " << i << endl;

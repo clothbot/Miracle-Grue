@@ -18,6 +18,10 @@
 #include <list>
 #include <set>
 
+#ifdef OMPFF
+#include <omp.h>
+#endif
+
 #include "mgl.h"
 #include "meshy.h"
 #include "segment.h"
@@ -32,16 +36,11 @@ namespace mgl // Miracle-Grue's geometry library
 struct Slicer
 {
 	Slicer()
-	:layerH(0.27),
-	 firstLayerZ(0.1),
-	 tubeSpacing(1),
-	 angle(1.570796326794897),
-	 nbOfShells(2),
-	 layerW(0.4),
-	 infillShrinkingMultiplier(0.25),
-	 insetDistanceMultiplier(0.9),
-	 insetCuttOffMultiplier(0.01),
-	 writeDebugScadFiles(false)
+	:layerH(0.27), firstLayerZ(0.1),
+	 tubeSpacing(1), angle(1.570796326794897),
+	 nbOfShells(2), layerW(0.4),
+	 infillShrinkingMultiplier(0.25), insetDistanceMultiplier(0.9),
+	 insetCuttOffMultiplier(0.01), writeDebugScadFiles(false)
 	{}
 
 	Scalar layerH;
@@ -74,23 +73,35 @@ public:
 
 typedef std::vector<ExtruderSlice > ExtruderSlices;
 
-//
-// The Slice data is contains polygons
-// for each extruder, for a slice.
-// there are multiple polygons for each extruder
+/// The Slice data is contains polygons
+/// for each extruder, for a slice.
+/// there are multiple polygons for each extruder
 class SliceData
 {
+private:
+	Scalar zHeight;
+	size_t index;
+
 public:
 	ExtruderSlices extruderSlices;
 
-	double z;
-	index_t sliceIndex;
-
-	SliceData (double z, index_t sliceIndex)
-		:z(z), sliceIndex(sliceIndex)//, tubes(z)
+	/// @param inHeight: z height of this layer. Middle of the specified layer
+	/// @param inIndex: layer number in this  model, positive in the 'up' direction
+	SliceData(Scalar inHeight=0, size_t inIndex=0):zHeight(inHeight), index(inIndex)
 	{
-
 	}
+
+	/// Updates position of slice in a model
+	/// @param inHeight: z height of this layer. Middle of the specified layer
+	/// @param inIndex: layer number in this  model, positive in the 'up' direction
+	void updatePosition(Scalar inHeight,size_t inIndex){
+		zHeight = inHeight;
+		index = inIndex ;
+	}
+
+	Scalar getZHeight() const { return zHeight;}
+	size_t getIndex()const  { return index;}
+
 
 };
 
@@ -100,7 +111,7 @@ public:
 class Slicy
 {
 	// config info
-	double layerW;
+	Scalar layerW;
 	const char* scadFile;
 	unsigned int sliceCount;
 	// Tolerance for assembling LineSegment2s into a loop
@@ -146,7 +157,6 @@ public:
 
 
 	bool slice( const TriangleIndices & trianglesForSlice,
-				Scalar z,
 				unsigned int sliceId,
 				unsigned int extruderId,
 				Scalar tubeSpacing,

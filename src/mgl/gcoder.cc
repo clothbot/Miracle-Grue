@@ -186,12 +186,17 @@ void GCoder::writeWarmupSequence(std::ostream &ss)
 	ss << endl;
 }
 
-void GCoder::writeStartOfFile(std::ostream &gout, const char* filename)
+/**
+ * Writes intial gcode data to start of the gcode file, including setup & startup info
+ * @param gout - output stream for the gcode text
+ * @param sourceName - source of this gcode (usually the origional stl file)
+ */
+void GCoder::writeStartOfFile(std::ostream &gout, const char* sourceName)
 {
 	gout.precision(3);
 	gout.setf(ios::fixed);
 
-	writeGCodeConfig(gout, filename);
+	writeGCodeConfig(gout, sourceName);
 	writeMachineInitialization(gout);
 	writeExtrudersInitialization(gout);
 	writePlatformInitialization(gout);
@@ -350,13 +355,14 @@ void GCoder::calcInSetExtrusion (	unsigned int extruderId,
 }
 
 
-void GCoder::writeSlice(ostream& ss, const SliceData& sliceData)
+void GCoder::writeSlice(ostream& ss, const SliceData& sliceData )
 {
 
-	double layerZ = sliceData.z;
+	double layerZ = sliceData.getZHeight();
+	unsigned int sliceIndex = sliceData.getIndex();
 	unsigned int extruderCount = sliceData.extruderSlices.size();
 
-	ss << "(Slice " << sliceData.sliceIndex << ", " << extruderCount << " " << plural("Extruder", extruderCount) << ")"<< endl;
+	ss << "(Slice " << sliceIndex << ", " << extruderCount << " " << plural("Extruder", extruderCount) << ")"<< endl;
 	// to each extruder its speed
 	double zFeedrate = gantry.scalingFactor * extruders[0].zFeedRate;
 	// moving all up. This is the first move for every new layer
@@ -371,7 +377,7 @@ void GCoder::writeSlice(ostream& ss, const SliceData& sliceData)
 		}
 		catch(GcoderException &mixup)
 		{
-			cout << "ERROR writing Z move in slice " << sliceData.sliceIndex  << " for extruder " << extruderId << " : " << mixup.error << endl;
+			cout << "ERROR writing Z move in slice " << sliceIndex  << " for extruder " << extruderId << " : " << mixup.error << endl;
 		}
 
 		unsigned int dualtrickId =  extruderId;
@@ -392,21 +398,21 @@ void GCoder::writeSlice(ostream& ss, const SliceData& sliceData)
 			if(gcoding.infills && gcoding.infillFirst)
 			{
 				Extrusion extrusion;
-				calcInfillExtrusion(extruderId, sliceData.sliceIndex, extrusion);
+				calcInfillExtrusion(extruderId, sliceIndex, extrusion);
 				ss << "(infills: "  << infills.size() << ")"<< endl;
 				writePolygons(ss, z, extrusion, infills);
 			}
 		}
 		catch(GcoderException &mixup)
 		{
-			cout << "ERROR writing infills in slice " << sliceData.sliceIndex  << " for extruder " << extruderId << " : " << mixup.error << endl;
+			cout << "ERROR writing infills in slice " << sliceIndex  << " for extruder " << extruderId << " : " << mixup.error << endl;
 		}
 		try
 		{
 			if(gcoding.outline)
 			{
 				Extrusion extrusion;
-				calcInfillExtrusion(extruderId, sliceData.sliceIndex, extrusion);
+				calcInfillExtrusion(extruderId, sliceIndex, extrusion);
 				//cout << "   Write OUTLINE" << endl;
 				ss << "(outlines: " << loops.size() << " )"<< endl;
 				writePolygons(ss, z, extrusion, loops);
@@ -414,7 +420,7 @@ void GCoder::writeSlice(ostream& ss, const SliceData& sliceData)
 		}
 		catch(GcoderException &mixup)
 		{
-			cout << "ERROR writing loops in slice " << sliceData.sliceIndex  << " for extruder " << extruderId << " : " << mixup.error << endl;
+			cout << "ERROR writing loops in slice " << sliceIndex  << " for extruder " << extruderId << " : " << mixup.error << endl;
 		}
 
 		try
@@ -426,7 +432,7 @@ void GCoder::writeSlice(ostream& ss, const SliceData& sliceData)
 				for(unsigned int i=0; i < insetCount; i++)
 				{
 					Extrusion extrusion;
-					calcInSetExtrusion(extruderId, sliceData.sliceIndex, i, insetCount, extrusion);
+					calcInSetExtrusion(extruderId, sliceIndex, i, insetCount, extrusion);
 					const Polygons &inset = insets[i];
 					// cout << "   Write INSETS " << i << endl;
 					ss << "(inset " << i << "/"<<  insetCount<< " )"<< endl;
@@ -437,7 +443,7 @@ void GCoder::writeSlice(ostream& ss, const SliceData& sliceData)
 		}
 		catch(GcoderException &mixup)
 		{
-			cout << "ERROR writing infills in slice " << sliceData.sliceIndex  << " for extruder " << extruderId << " : " << mixup.error << endl;
+			cout << "ERROR writing infills in slice " << sliceIndex  << " for extruder " << extruderId << " : " << mixup.error << endl;
 		}
 
 		try
@@ -446,13 +452,13 @@ void GCoder::writeSlice(ostream& ss, const SliceData& sliceData)
 			{
 				//cout << "   Write INFILLS" << endl;
 				Extrusion extrusion;
-				calcInfillExtrusion(extruderId, sliceData.sliceIndex, extrusion);
+				calcInfillExtrusion(extruderId, sliceIndex, extrusion);
 				writePolygons(ss, z, extrusion, infills);
 			}
 		}
 		catch(GcoderException &mixup)
 		{
-			cout << "ERROR writing infills in slice " << sliceData.sliceIndex  << " for extruder " << extruderId << " : " << mixup.error << endl;
+			cout << "ERROR writing infills in slice " << sliceIndex  << " for extruder " << extruderId << " : " << mixup.error << endl;
 		}
 
 		if (extruderCount > 0)
@@ -574,7 +580,12 @@ void Gantry::g1Motion(std::ostream &ss, double x, double y, double z,
 
 }
 
-void GCoder::writeGCodeConfig(std::ostream &ss, const char* filename) const
+/**
+ * Writes config header metadata into a gcode file
+ * @param ss Stream to write config data to
+ * @param sourceName - Name of source of this model. Usually the original .stl filename
+ */
+void GCoder::writeGCodeConfig(std::ostream &ss, const char* sourceName="unknown source") const
 {
 	std::string indent = "* ";
 	ss << endl;
@@ -584,13 +595,12 @@ void GCoder::writeGCodeConfig(std::ostream &ss, const char* filename) const
 	ss << "(http://wiki.makerbot.com/gcode)" <<  endl;
 
 	MyComputer hal9000;
-	//std::string indent = "* ";
 
-	ss << "(" << indent << "Generated by "<<  programName << " " << versionStr << ")"<< endl;
+	ss << "(" << indent << "Generated by "<<  programName << " " << getMiracleGrueVersionStr() << ")"<< endl;
 	ss << "(" << indent << hal9000.clock.now() <<  ")" << endl;
 	ss << "(" << indent << "machine name: " << machineName << ")"<< endl;
 	ss << "(" << indent << "firmware revision:" << firmware << ")" << endl;
-	ss << "(" << indent << "3D model filename: " << filename << ")" << endl;
+	ss << "(" << indent << "3D model filename: " << sourceName << ")" << endl;
 
 	std::string plurial = extruders.size()? "":"s";
 	ss << "(" << indent << extruders.size() << " extruder" << plurial << ")" << endl;
