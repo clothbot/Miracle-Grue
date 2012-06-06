@@ -12,12 +12,16 @@
 #include <stdint.h>
 #include <cstring>
 
+#include "log.h"
 #include "slicy.h"
 #include "insets.h"
+#include "ScadDebugFile.h"
+
+
 
 using namespace mgl;
 using namespace std;
-
+using namespace libthing;
 
 
 Slicy::Slicy(const std::vector<Triangle3> &allTriangles,
@@ -133,7 +137,7 @@ void Slicy::writeScadSlice(const TriangleIndices & trianglesForSlice,
 		{
 			#ifdef OMPFF
 			OmpGuard lock (my_lock);
-			cout << "slice "<< sliceId << "/" << sliceCount << " thread: " << "thread id " << omp_get_thread_num() << " (pool size: " << omp_get_num_threads() << ")"<< endl;
+            Log::info() << "slice "<< sliceId << "/" << sliceCount << " thread: " << "thread id " << omp_get_thread_num() << " (pool size: " << omp_get_num_threads() << ")"<< endl;
 			#endif
 
 			fscad.writeTrianglesModule("tri_", allTriangles, trianglesForSlice, sliceId);
@@ -160,7 +164,7 @@ void Slicy::writeScadSlice(const TriangleIndices & trianglesForSlice,
 				string insetsForSlice = ss.str();
 				ss << "_";
 				fscad.writeMinMax(insetsForSlice.c_str(), ss.str().c_str(), insetCount);
-				//cout << " SCAD: " << insetsForSlice.c_str() << endl;
+                //Log::often() << " SCAD: " << insetsForSlice.c_str() << endl;
 			}
 		}
 }
@@ -179,7 +183,8 @@ void Slicy::closeScadFile()
 		out << "// python snippets to make segments from polygon points" << endl;
 		out << "// segments = [[ points[i], points[i+1]] for i in range(len(points)-1 ) ]" << endl;
         out << "// s = [\"segs.push_back(LineSegment2(Vector2(%s, %s), Vector2(%s, %s)));\" %(x[0][0], x[0][1], x[1][0], x[1][1]) for x in segments]" << std::endl;
-		std::cout << "closing OpenSCad file: " << fscad.getScadFileName() << std::endl;
+        const char* scadfn = fscad.getScadFileName().c_str();
+        Log::info() << "closing OpenSCad file: " << scadfn ;
 		fscad.close();
 	}
 
@@ -199,12 +204,13 @@ bool Slicy::slice(  const TriangleIndices & trianglesForSlice,
 					bool writeDebugScadFiles,
 					SliceData &slice)
 {
+    size_t  skipCount = 1;
+
 	Scalar z = slice.getZHeight();
 	std::vector<LineSegment2> segments;
     segmentationOfTriangles(trianglesForSlice, allTriangles, z, segments);
 	// what we are left with is a series of segments (outline segments... triangle has beens)
 
-    // keep all segments of insets for each loop
     unsigned int cuts = segments.size();
     if(cuts == 0)
     {
@@ -235,38 +241,36 @@ bool Slicy::slice(  const TriangleIndices & trianglesForSlice,
 	}
 	else
 	{
-		std::vector<SegmentTable> insetsForLoops;
+		Insets insetsForSlice;
 		// create shells inside the outlines (and around holes)
 		inshelligence(outlinesSegments,
 					  nbOfShells,
 					  layerW,
-					  sliceId,
+					  // sliceId,
 					  insetDistanceFactor,
 					  scadFile,
 					  writeDebugScadFiles,
-					  insetsPolys,
-					  innerOutlinesSegments);
-
+					  insetsForSlice);
+					  // insetsPolys,
+					  // innerOutlinesSegments);
+		polygonsFromLoopSegmentTables(nbOfShells, insetsForSlice, insetsPolys);
+		innerOutlinesSegments =  insetsForSlice.back();
 	}
 
 
 
+    Polygons& infills = slice.extruderSlices[extruderId].infills;
 
-	translateLoops(innerOutlinesSegments, toRotationCenter);
-	// rotate the outlines before generating the tubes...
-	rotateLoops(innerOutlinesSegments, sliceAngle);
+    bool infillDirection = sliceId % 2 == 0;
 
-	Polygons& infills = slice.extruderSlices[extruderId].infills;
-	infillPathology(innerOutlinesSegments,
+    infillosophy(innerOutlinesSegments,
 					tubularLimits,
 					z,
-					tubeSpacing,
+                    layerW,
+                    skipCount,
+                    infillDirection,
 					infillShrinking,
 					infills);
-
-	// rotate and translate the TUBES so they fit with the ORIGINAL outlines
-	rotatePolygons(infills, -sliceAngle);
-	translatePolygons(infills, backToOrigin);
 
 	// write the scad file
 	// only one thread at a time in here
@@ -276,7 +280,7 @@ bool Slicy::slice(  const TriangleIndices & trianglesForSlice,
 					slice.extruderSlices[extruderId].insetLoopsList,
 					z,
 					sliceId);
-	// cout << "</sliceId"  << sliceId <<  ">" << endl;
+    // Log::often() << "</sliceId"  << sliceId <<  ">" << endl;
 	return true;
 }
 

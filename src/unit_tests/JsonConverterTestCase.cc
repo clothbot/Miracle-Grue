@@ -2,6 +2,9 @@
 #include <cstdlib>
 
 #include <cppunit/config/SourcePrefix.h>
+
+#include "UnitTestUtils.h"
+
 #include "JsonConverterTestCase.h"
 
 
@@ -15,6 +18,7 @@
 using namespace std;
 using namespace mgl;
 using namespace Json;
+using namespace libthing;
 
 string testCaseInputsDir("test_cases/jsonConverterTestCase/");
 string testCaseOutputsDir("outputs/test_cases/jsonConverterTestCase/inputs/");
@@ -30,7 +34,7 @@ void JsonConverterTestCase::setUp()
 {
 	std::cout<< " Starting:" <<__FUNCTION__ << endl;
 	MyComputer computer;
-	computer.fileSystem.mkpath(outputDir.c_str());
+	mkDebugPath(outputDir.c_str());
 }
 
 

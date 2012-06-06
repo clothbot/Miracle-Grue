@@ -5,7 +5,7 @@
 
 #include <cppunit/config/SourcePrefix.h>
 #include "ClipperTestCase.h"
-
+#include "UnitTestUtils.h"
 #include "insetTests.h"
 #include "mgl/clipper.h"
 
@@ -14,15 +14,15 @@ CPPUNIT_TEST_SUITE_REGISTRATION( ClipperTestCase );
 
 using namespace std;
 using namespace mgl;
-
+using namespace libthing;
 
 string outputDir("outputs/test_cases/ClipperTestCase/");
 
 
 
 
-void clipperToMgl(const ClipperLib::Polygons &polys, mgl::SegmentTable & outlinesSegments);
-void mglToClipper(const mgl::SegmentTable &segmentTable, ClipperLib::Polygons &out_polys );
+void clipperToMgl(const ClipperLib::Polygons &polys, SegmentVector& outlinesSegments);
+void mglToClipper(const SegmentVector &segmentTable, ClipperLib::Polygons &out_polys );
 void dumpSegmentTable(const char* name, const SegmentTable & outTable);
 void dumpClipperPolys(const char*name, const ClipperLib::Polygons  &polys);
 
@@ -30,21 +30,21 @@ class ClipperInsetter
 {
 
 public:
-	void inset( const mgl::SegmentTable & inputPolys,
+	void inset( const SegmentVector & inputPolys,
 				Scalar insetDist,
-				mgl::SegmentTable & outputPolys);
+				SegmentVector & outputPolys);
 };
 
 void ClipperTestCase::setUp()
 {
 	MyComputer computer;
-	computer.fileSystem.mkpath(outputDir.c_str());
+	mkDebugPath(outputDir.c_str());
 }
 
 void ClipperTestCase::test_conversion()
 {
 	cout << endl;
-	SegmentTable table;
+	SegmentVector table;
 	table.push_back(vector<LineSegment2>());
 	vector<LineSegment2> &segs = *table.rbegin();
 
@@ -148,7 +148,7 @@ void ClipperTestCase::testSimpleInset()
 
 	// std::reverse(segs.begin(), segs.end());
 
-	ScadTubeFile::segment3(cout, "", "in_segments", segs, 0, 0);
+	ScadDebugFile::segment3(cout, "", "in_segments", segs, 0, 0);
 
 	SegmentTable outTable;
 

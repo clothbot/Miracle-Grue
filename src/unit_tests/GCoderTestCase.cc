@@ -1,8 +1,9 @@
 #include <fstream>
-
 #include <cstdlib>
-
 #include <cppunit/config/SourcePrefix.h>
+
+#include "UnitTestUtils.h"
+
 #include "GCoderTestCase.h"
 
 
@@ -15,6 +16,7 @@
 
 using namespace std;
 using namespace mgl;
+using namespace libthing;
 
 
 
@@ -101,7 +103,7 @@ void GCoderTestCase::setUp()
 	std::cout<< "Setup for :" <<__FUNCTION__ << endl;
 	MyComputer computer;
 
-	computer.fileSystem.mkpath(outputDir.c_str() );
+	mkDebugPath(outputDir.c_str() );
 	std::cout<< "Setup for :" <<__FUNCTION__ << " Done" << endl;
 }
 
@@ -169,12 +171,15 @@ void GCoderTestCase::testSingleExtruder()
 	string confstr = w.write(config.root);
 	cout << confstr << endl;
 
-	GCoder gcoder;
-	gcoder.extruders.push_back(Extruder());
-//	loadGCoderData(config, gcoder);
+	GCoderConfig cfg;
+	cfg.extruders.push_back(Extruder());
+
+	GCoder gcoder(cfg);
+
+
 	std::ofstream gout(SINGLE_EXTRUDER_FILE_NAME);
-	gcoder.writeStartOfFile(gout, SINGLE_EXTRUDER_FILE_NAME);
-	gcoder.writeGcodeEndOfFile(gout);
+	gcoder.writeStartDotGCode(gout, SINGLE_EXTRUDER_FILE_NAME);
+	gcoder.writeEndDotGCode(gout);
 
 
 	// verify that gcode file has been generated
@@ -198,14 +203,16 @@ void GCoderTestCase::testDualExtruders()
 	// create a simple Gcode operation (no paths), initialize it and run it
 
 	std::ofstream gout(DUAL_EXTRUDER_FILE_NAME);
-	GCoder gcoder;
-	gcoder.extruders.push_back(Extruder());
-	gcoder.extruders.push_back(Extruder());
-//	loadGCoderData(config, gcoder);
 
-	gcoder.writeStartOfFile(gout, DUAL_EXTRUDER_FILE_NAME );
+	GCoderConfig gcoderCfg;
+	gcoderCfg.extruders.push_back(Extruder());
+	gcoderCfg.extruders.push_back(Extruder());
+//	loadGCoderData(config, gcoder);
+	GCoder gcoder(gcoderCfg);
+
+	gcoder.writeStartDotGCode(gout, DUAL_EXTRUDER_FILE_NAME );
 	dbg__
-	gcoder.writeGcodeEndOfFile(gout);
+	gcoder.writeEndDotGCode(gout);
 	dbg__
 	CPPUNIT_ASSERT( ifstream(DUAL_EXTRUDER_FILE_NAME) );
 	dbg__
@@ -234,11 +241,14 @@ void GCoderTestCase::testSimplePath()
 	// instaniate a gcoder and send it the path as an envelope.
 
 	std::ofstream gout(SINGLE_EXTRUDER_WITH_PATH);
-	GCoder gcoder;
-	gcoder.extruders.push_back(Extruder());
-//	loadGCoderData(config, gcoder);
-	gcoder.writeStartOfFile(gout, SINGLE_EXTRUDER_WITH_PATH);
-	gcoder.writeGcodeEndOfFile(gout);
+
+	GCoderConfig gcoderCfg;
+	gcoderCfg.extruders.push_back(Extruder());
+
+	GCoder gcoder(gcoderCfg);
+
+	gcoder.writeStartDotGCode(gout, SINGLE_EXTRUDER_WITH_PATH);
+	gcoder.writeEndDotGCode(gout);
 	for(int i = 0; i < slices.size(); i++)
 	{
     	cout.flush();
@@ -248,7 +258,7 @@ void GCoderTestCase::testSimplePath()
 		gcoder.writeSlice(gout, slice);
 	}
 
-	gcoder.writeGcodeEndOfFile(gout);
+	gcoder.writeEndDotGCode(gout);
 	gout.close();
 
 	// verify that gcode file has been generated
@@ -421,10 +431,13 @@ void GCoderTestCase::testGridPath()
 	slices.push_back(path);
 
 	std::ofstream gout(SINGLE_EXTRUDER_GRID_PATH);
-	GCoder gcoder;
-	gcoder.extruders.push_back(Extruder());
 
-	gcoder.writeStartOfFile(gout, SINGLE_EXTRUDER_GRID_PATH);
+	GCoderConfig gcoderCfg;
+	gcoderCfg.extruders.push_back(Extruder());
+
+	GCoder gcoder(gcoderCfg);
+
+	gcoder.writeStartDotGCode(gout, SINGLE_EXTRUDER_GRID_PATH);
 	for(int i = 0; i < slices.size(); i++)
 	{
     	cout.flush();
@@ -434,7 +447,7 @@ void GCoderTestCase::testGridPath()
 		gcoder.writeSlice(gout, slice);
 	}
 
-	gcoder.writeGcodeEndOfFile(gout);
+	gcoder.writeEndDotGCode(gout);
 	gout.close();
 
 	CPPUNIT_ASSERT( ifstream(SINGLE_EXTRUDER_WITH_PATH) );
@@ -481,10 +494,14 @@ void GCoderTestCase::testMultiGrid()
 	}
 
 	std::ofstream gout(SINGLE_EXTRUDER_MULTI_GRID_PATH);
-	GCoder gcoder;
-	gcoder.extruders.push_back(Extruder());
+
+	GCoderConfig gcoderCfg;
+	gcoderCfg.extruders.push_back(Extruder());
+
+	GCoder gcoder(gcoderCfg);
+
 	// loadGCoderData(config, gcoder);
-	gcoder.writeStartOfFile(gout, SINGLE_EXTRUDER_MULTI_GRID_PATH);
+	gcoder.writeStartDotGCode(gout, SINGLE_EXTRUDER_MULTI_GRID_PATH);
 
 	for(int i = 0; i < slices.size(); i++)
 	{
@@ -495,7 +512,7 @@ void GCoderTestCase::testMultiGrid()
 		gcoder.writeSlice(gout, slice);
 	}
 
-	gcoder.writeGcodeEndOfFile(gout);
+	gcoder.writeEndDotGCode(gout);
 	gout.close();
 
 

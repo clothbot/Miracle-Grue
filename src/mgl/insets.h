@@ -20,21 +20,23 @@
 
 #include "mgl.h"
 
+
 namespace mgl
 {
 
 
+void polygonsFromLoopSegmentTables( unsigned int nbOfShells,
+									const libthing::Insets & insetsForLoops,
+									std::vector<Polygons> & insetsPolys );
 
-
-void inshelligence( const SegmentTable & outlinesSegments,
+void inshelligence( const libthing::SegmentTable & outlinesSegments,
 					unsigned int nbOfShells,
 					double layerW,
-					unsigned int sliceId,
+					//unsigned int sliceId,
 					Scalar insetDistanceFactor,
 					const char *scadFile,
 					bool writeDebugScadFiles,
-					std::vector<Polygons> & insetPolys,
-					SegmentTable& innerOutlinesSegments);
+					libthing::Insets &insetsForLoops);
 
 
 }

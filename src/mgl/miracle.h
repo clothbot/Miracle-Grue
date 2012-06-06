@@ -8,46 +8,58 @@
    License, or (at your option) any later version.
 
 */
+
 #ifndef MIRACLE_H_
 #define MIRACLE_H_
 
 #include "gcoder.h"
-
+#include "regioner.h"
+#include "pather.h"
+#include "log.h"
 
 namespace mgl
 {
 
-void miracleGrue(GCoder &gcoder,
-                      const Slicer &slicer,
+
+
+void miracleGrue(const GCoderConfig &gcoderCfg,
+                      const SlicerConfig &slicerCfg,
                       const char *modelFile,
                       const char *scadFile,
                       const char *gcodeFile,
                       int firstSliceIdx,
                       int lastSliceIdx,
-                      std::vector< SliceData >  &slices);
-
+                      Tomograph &tomograph,
+                      Regions &regions,
+                      std::vector< SliceData >  &slices,
+                      ProgressBar* progress = NULL);
 
 void slicesFromSlicerAndMesh(
 		std::vector< SliceData >  &slices,
-		const Slicer &slicer,
+		const SlicerConfig &slicer,
 		Meshy& mesh,
 		const char *scadFile,
 		int firstSliceIdx  = -1,
-		int lastSliceIdx  = -1);
-
-
+                int lastSliceIdx  = -1,
+                ProgressBar* progress = NULL);
 
 void adjustSlicesToPlate(
 		std::vector<SliceData>& slices,
 		const LayerMeasure& layerMeasure,
-		size_t firstSliceIdx,
-		size_t lastSliceIdx);
+		int firstSliceIdx = -1,
+		int lastSliceIdx = -1);
 
 void writeGcodeFromSlicesAndParams(
 		const char *gcodeFile,
 		GCoder &gcoder,
 		std::vector<SliceData >& slices,
-		const char *modelSource ="unknown source");
+                const char *modelSource ="unknown source",
+                ProgressBar* progress = NULL );
+
+/// log the passed vector of slices to a directory
+void slicesLogToDir(std::vector<SliceData>& slices, const char* logDirName);
+
+
 
 };
 

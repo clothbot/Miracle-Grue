@@ -19,20 +19,13 @@
 #include <cassert>
 
 #include "Exception.h"
-#include "Vector2.h"
-#include "Vector3.h"
-#include "LineSegment2.h"
-#include "Triangle3.h"
+#include "libthing/Vector2.h"
+#include "libthing/Vector3.h"
+#include "libthing/LineSegment2.h"
+#include "libthing/Triangle3.h"
 
 
-// WIN32 compatibility stuff
-#ifdef WIN32
-
-#define strncasecmp _strnicmp
-#define strcasecmp _stricmp
-#define M_PI 3.14159265358979323846
-
-#endif // WIN32
+#define M_TAU M_PI*2
 
 // #define STRONG_CHECKING
 
@@ -59,13 +52,15 @@ typedef std::vector<TriangleIndices> SliceTable;
 
 
 // Bring over from mgl.cc
-Scalar AreaSign(const Vector2 &a, const Vector2 &b, const Vector2 &c);
-bool convexVertex(const Vector2 &i, const Vector2 &j, const Vector2 &k);
+Scalar AreaSign(const libthing::Vector2&a, const libthing::Vector2&b, const libthing::Vector2&c);
+bool convexVertex(const libthing::Vector2&i, const libthing::Vector2&j, const libthing::Vector2&k);
 
-std::ostream& operator << (std::ostream &os,const Vector2 &pt);
-std::ostream& operator << (std::ostream& os, const Vector3& v);
+std::ostream& operator << (std::ostream &os,const libthing::Vector2&pt);
+std::ostream& operator << (std::ostream& os, const libthing::Vector3& v);
+//std::ostream& operator<<(std::ostream& os, libthing::LineSegment2 const& line);
 
-
+bool collinear(const libthing::LineSegment2 &prev, const libthing::LineSegment2 &current,
+		Scalar tol, libthing::Vector2 &mid);
 
 
 class LayerException : public Exception {
@@ -95,8 +90,8 @@ public:
 	{
 		if(z < 0)
 		{
-			LayerException mixup("Model with points below the z axis are not supported in this version. Please center your model on the build area");
-			throw mixup;
+                        LayerException mixup("Model with points below the z axis are not supported in this version. Please center your model on the build area");
+                        throw mixup;
 		}
 
 		if (z < firstLayerZ)
@@ -119,9 +114,9 @@ public:
 };
 
 /// A polygon is an arbitarty collection of 2d points
-typedef std::vector<Vector2> Polygon;
+typedef std::vector<libthing::Vector2> Polygon;
 
-/// Verifies each Vector2 in the passed Polygon are in tolerance
+/// Verifies each libthing::Vector2in the passed Polygon are in tolerance
 // tol
 bool tequalsPolygonCompare(Polygon& poly1, Polygon& poly2, Scalar tol);
 

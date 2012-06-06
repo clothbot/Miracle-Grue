@@ -12,7 +12,7 @@
 #ifndef JSON_CONVERTER_H_
 #define JSON_CONVERTER_H_ (1)
 
-#include "json-cpp/include/json/value.h"
+#include <json/value.h>
 
 #include "slicy.h"
 #include "mgl.h"
@@ -27,8 +27,8 @@ class JsonConverter
 public:
 
 	bool loadJsonFromScalar(Json::Value& val, Scalar& s);
-	bool loadJsonFromVector2(Json::Value& val, Vector2& input);
-	bool loadJsonFromVector3(Json::Value& val, Vector3& input);
+	bool loadJsonFromVector2(Json::Value& val, libthing::Vector2& input);
+	bool loadJsonFromVector3(Json::Value& val, libthing::Vector3& input);
 	bool loadJsonFromPolygon(Json::Value& val, Polygon& input);
 	bool loadJsonFromPolygons(Json::Value& val, Polygons& input);
 
@@ -37,7 +37,7 @@ public:
 	bool loadJsonFromSliceData(Json::Value& val, SliceData& input);
 
 	bool loadScalarFromJson(Scalar& s, Json::Value& input);
-	bool loadVector2FromJson(Vector2& vector,Json::Value& input);
+	bool loadVector2FromJson(libthing::Vector2& vector,Json::Value& input);
 	bool loadPolygonFromJson(Polygon& poly,Json::Value& input);
 	bool loadPolygonsFromJson(Polygons& polys,Json::Value& input);
 	bool loadPolygonsGroupFromJson(PolygonsGroup& pg, Json::Value& input);

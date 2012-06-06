@@ -18,19 +18,16 @@
 //  the mundane and superfluous live here
 
 #ifndef ABSTRACTABLE_H_
-#define ABSTRACTABLE_H_
+#define ABSTRACTABLE_H_ (1)
 
 
 #include <ctime>
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <sys/stat.h>
 
-
-
-// #include "mgl.h"
 namespace mgl {
-
 
 
 
@@ -56,44 +53,26 @@ class FileSystemAbstractor
 {
 public:
 
-	char getPathSeparatorCharacter() const
-	{
-		return '/'; // Linux & Mac, works on Windows most times
-	}
+	char getPathSeparatorCharacter() const;
 
-	::std::string ExtractDirectory(const char *directoryPath) const
-	{
-		const ::std::string path(directoryPath);
-		return path.substr(0, path.find_last_of(getPathSeparatorCharacter()) + 1);
-	}
+	::std::string ExtractDirectory(const char *directoryPath) const;
+	::std::string ExtractFilename(const char* filename) const;
+	::std::string ChangeExtension(const char* filename, const char* extension) const;
+	::std::string removeExtension(const char *filename) const;
 
-	::std::string ExtractFilename(const char* filename) const
-	{
-		std::string path(filename);
-		return path.substr(path.find_last_of(getPathSeparatorCharacter()) + 1);
-	}
+	::std::string pathJoin(std::string path, std::string filename) const;
 
-	::std::string ChangeExtension(const char* filename, const char* extension) const
-	{
-		const ::std::string path(filename);
-		const ::std::string ext(extension);
-		std::string filenameStr = ExtractFilename(path.c_str());
-		return ExtractDirectory(path.c_str())
-				+ filenameStr.substr(0, filenameStr.find_last_of('.')) + ext;
-	}
+    int guarenteeDirectoryExists(const char* dirPath);
+	bool fileReadable(const char *filename) const;
 
-	::std::string removeExtension(const char *filename) const
-	{
-		const ::std::string path(filename);
-		::std::string filenameStr = ExtractFilename(path.c_str());
-		return ExtractDirectory(path.c_str())
-				+ filenameStr.substr(0, filenameStr.find_last_of('.'));
-	}
-
-	int mkpath(const char *path);
-
+	::std::string getDataFile(const char *filename) const;
+	::std::string getConfigFile(const char *filename) const;
+private:
+	::std::string getUserDataFile(const char *filename) const;
+	::std::string getSystemDataFile(const char *filename) const;
+	::std::string getUserConfigFile(const char *filename) const;
+	::std::string getSystemConfigFile(const char *filename) const;
 };
-
 
 
 class MyComputer
@@ -102,56 +81,103 @@ public:
 	ClockAbstractor clock;
 	FileSystemAbstractor fileSystem;
 
+    static std::ostream &log();
+
 };
+
+
 
 
 //
 // ASCII art
 //
+
 class ProgressBar
 {
-	unsigned int total;
-	unsigned int delta;
-	unsigned int progress;
-	unsigned int ticks;
-	MyComputer myPc;
 
+    unsigned int count;
+    unsigned int ticks;
+
+protected:
+    std::string task;
+
+ public:
+    ProgressBar(unsigned int count=0, const char* taskName="")
+    {
+        reset(count, taskName);
+    }
+
+    virtual ~ProgressBar(){};
+
+    void reset(unsigned int count, const char* taskName = "")
+    {
+        ticks = 0;
+        this->count = count;
+        task = taskName;
+    }
+
+    void tick()
+    {
+        onTick(task.c_str(), count, ticks);
+        ticks++;
+    }
+
+    virtual void onTick(const char* taskName, unsigned int size, unsigned int it)=0;
+
+};
+
+
+class ProgressLog : public ProgressBar
+{
+public:
+	MyComputer myPc;
+    unsigned int delta;
+    unsigned int deltaTicks;
+    unsigned int deltaProgress;
+
+        ProgressLog(unsigned int count=0);
+        void onTick(const char* taskName, unsigned int count, unsigned int tick);
+
+};
+
+/// used as a base class to provide progress bar support
+///
+/// This is used for top level operations that take time (Pather, Gcoder, Slicer)
+/// and need to report progress
+class Progressive
+{
+
+	ProgressBar *progress;
 public:
 
-	ProgressBar(unsigned int count)
-	:total(0), delta(0), progress(0), ticks(0)
-	{
-		reset(count);
-		::std::cout << ":";
-	}
+	Progressive(ProgressBar *progress = NULL)
+    {
+        setProgress(progress);
+    }
 
-	void reset(unsigned int count)
-	{
-		ticks=0;
-		total = count;
-		progress = 0;
-		delta = count /10;
-	}
+    void setProgress(ProgressBar *progress)
+    {
+        this->progress = progress;
+    }
 
-	void tick()
-	{
-		total --;
-		ticks ++;
-		if (ticks >= delta)
-		{
-			ticks = 0;
-			progress ++;
-			::std::cout << " [" << progress * 10<< "%] ";
-			::std::cout.flush();
+protected:
+    void initProgress(const char* title, unsigned int ticks)
+    {
+        if(progress)
+        {
+            progress->reset(ticks, title);
+        }
+    }
+    void tick()
+    {
+        if(progress)
+        {
+            progress->tick();
+        }
+    }
 
-		}
-		if (total ==0)
-		{
-			// ::std::cout << "" << ::std::endl;
-			std::cout << myPc.clock.now() << std::endl;
-		}
-	}
 };
+
 
 }
 

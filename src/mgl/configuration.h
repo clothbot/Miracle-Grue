@@ -12,20 +12,21 @@
 #ifndef CONFIGURATION_H_
 #define CONFIGURATION_H_
 
-#define GRUE_VERSION  "v0.0.1.0"
+#define GRUE_VERSION  "v0.0.4.0"
 #define GRUE_PROGRAM_NAME  "Miracle-Grue"
 
 #include <sstream>
 #include <vector>
 #include <string>
 
-#include "json-cpp/include/json/reader.h"
-#include "json-cpp/include/json/writer.h"
-#include "json-cpp/include/json/value.h"
-#include "json-cpp/include/json/writer.h"
+#include <json/reader.h>
+#include <json/writer.h>
+#include <json/value.h>
+#include <json/writer.h>
 
 #include "mgl.h"
-#include "gcoder.h"
+
+
 
 namespace mgl
 {
@@ -36,6 +37,7 @@ class ConfigException : public Exception {public: ConfigException(const char *ms
 double doubleCheck(const Json::Value &value, const char *name);
 unsigned int uintCheck(const Json::Value &value, const char *name);
 std::string stringCheck(const Json::Value &value, const char *name);
+std::string pathCheck(const Json::Value &value, const char *name);
 bool boolCheck(const Json::Value &value, const char *name);
 //
 // This class contains settings for the 3D printer, and user preferences
@@ -58,8 +60,14 @@ public:
          ~Configuration();
 
          void readFromFile(const char* filename);
+         void readFromFile(const std::string &filename) { readFromFile(filename.c_str()); };
+         void readFromDefault() { readFromFile(defaultFilename()); };
+	
 
     public:
+         bool isMember(const char* key) {
+             return this->root.isMember(key);
+         }
 
      	/// index function, to read/write values as config["foo"]
      	Json::Value& operator[] (const char* key)
@@ -87,11 +95,15 @@ public:
 
       	std::string asJson(Json::StyledWriter writer = Json::StyledWriter()) const;
 
-
+private:
+	std::string defaultFilename();
 };
 
-void loadGCoderData(const Configuration& conf, GCoder &gcoder);
-void loadSlicerData( const Configuration &config, Slicer &slicer);
+class GCoderConfig;
+class SlicerConfig;
+
+void loadGCoderConfigFromFile(const Configuration& conf, GCoderConfig &gcoder);
+void loadSlicerConfigFromFile( const Configuration &config, SlicerConfig &slicer);
 
 }
 #endif /* CONFIGURATION_H_ */

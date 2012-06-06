@@ -2,6 +2,8 @@
 #include <limits>
 
 #include <cppunit/config/SourcePrefix.h>
+
+#include "UnitTestUtils.h"
 #include "SlicerSplitTestCase.h"
 
 #include "insetTests.h"
@@ -17,6 +19,7 @@ CPPUNIT_TEST_SUITE_REGISTRATION( SlicerSplitTestCase );
 
 using namespace std;
 using namespace mgl;
+using namespace libthing;
 
 string inputDir("test_cases/slicerCupTestCase/stls/");
 string outputDir("outputs/test_cases/SlicerSplitTestCase/");
@@ -24,7 +27,7 @@ string outputDir("outputs/test_cases/SlicerSplitTestCase/");
 void SlicerSplitTestCase::setUp()
 {
 	MyComputer computer;
-	computer.fileSystem.mkpath(outputDir.c_str());
+	mkDebugPath(outputDir.c_str());
 }
 
 void SlicerSplitTestCase::test_m()
@@ -77,7 +80,7 @@ void SlicerSplitTestCase::test_calibration_slice_70()
 	cout << "Slices " << sliceCount << endl;
 
 	const TriangleIndices & trianglesForSlice = mesh.readSliceTable()[70];
-	const vector<mgl::Triangle3> &allTriangles = mesh.readAllTriangles();
+	const vector<Triangle3> &allTriangles = mesh.readAllTriangles();
 	std::vector<LineSegment2> segments;
 	Scalar z = mesh.readLayerMeasure().sliceIndexToHeight(70);
 	cout  << "z="<< z << endl;

@@ -3,11 +3,16 @@
 #include "mgl.h"
 
 #include<iostream>
+#include<algorithm>
+#include<string>
 #include<stdint.h>
 #include<cstring>
 
 using namespace mgl;
 using namespace std;
+using namespace libthing;
+
+#include "log.h"
 
 
 
@@ -40,11 +45,11 @@ static inline void convertFromLittleEndian16(uint8_t* bytes)
     bytes[1] = tmp;
 }
 #else
-static inline void convertFromLittleEndian32(uint8_t* bytes)
+static inline void convertFromLittleEndian32(uint8_t*)// bytes)
 {
 }
 
-static inline void convertFromLittleEndian16(uint8_t* bytes)
+static inline void convertFromLittleEndian16(uint8_t*)// bytes)
 {
 }
 #endif
@@ -94,26 +99,26 @@ void Meshy::addTriangle(Triangle3 &t)
 	if (maxSliceIndex - minSliceIndex > 1)
 		maxSliceIndex --;
 
-//		std::cout << "Min max index = [" <<  minSliceIndex << ", "<< maxSliceIndex << "]"<< std::endl;
-//		std::cout << "Max index =" <<  maxSliceIndex << std::endl;
+//		Log::often() << "Min max index = [" <<  minSliceIndex << ", "<< maxSliceIndex << "]"<< std::endl;
+//		Log::often() << "Max index =" <<  maxSliceIndex << std::endl;
 	unsigned int currentSliceCount = sliceTable.size();
 	if (maxSliceIndex >= currentSliceCount)
 	{
 		unsigned int newSize = maxSliceIndex+1;
 		sliceTable.resize(newSize); // make room for potentially new slices
-//			std::cout << "- new slice count: " << sliceTable.size() << std::endl;
+//			Log::often() << "- new slice count: " << sliceTable.size() << std::endl;
 	}
 
 	allTriangles.push_back(t);
 
 	size_t newTriangleId = allTriangles.size() -1;
 
-//		 std::cout << "adding triangle " << newTriangleId << " to layer " << minSliceIndex  << " to " << maxSliceIndex << std::endl;
+//		 Log::often() << "adding triangle " << newTriangleId << " to layer " << minSliceIndex  << " to " << maxSliceIndex << std::endl;
 	for (size_t i= minSliceIndex; i<= maxSliceIndex; i++)
 	{
 		TriangleIndices &trianglesForSlice = sliceTable[i];
 		trianglesForSlice.push_back(newTriangleId);
-//			std::cout << "   !adding triangle " << newTriangleId << " to layer " << i  << " (size = " << trianglesForSlice.size() << ")" << std::endl;
+//			Log::often() << "   !adding triangle " << newTriangleId << " to layer " << i  << " (size = " << trianglesForSlice.size() << ")" << std::endl;
 	}
 
 	limits.grow(t[0]);
@@ -136,7 +141,7 @@ void Meshy::dump(std::ostream &out)
 		TriangleIndices &trianglesForSlice = sliceTable[i];
 		//trianglesForSlice.push_back(newTriangleId);
 		out << "  slice " << i << " size: " << trianglesForSlice.size() << std::endl;
-		//cout << "adding triangle " << newTriangleId << " to layer " << i << std::endl;
+        //Log::often() << "adding triangle " << newTriangleId << " to layer " << i << std::endl;
 	}
 }
 
@@ -144,7 +149,7 @@ void Meshy::dump(std::ostream &out)
 
 size_t Meshy::triangleCount() {
 	return allTriangles.size();
-	std::cout << "all triangle count" << allTriangles.size();
+    Log::info() << "all triangle count" << allTriangles.size();
 }
 
 void Meshy::writeStlFile(const char* fileName) const
@@ -158,7 +163,7 @@ void Meshy::writeStlFile(const char* fileName) const
 		out.writeTriangle(t);
 	}
 	out.close();
-	// cout << fileName << " written!"<< std::endl;
+    // Log::often() << fileName << " written!"<< std::endl;
 
 }
 
@@ -176,7 +181,7 @@ void Meshy::writeStlFileForLayer(unsigned int layerIndex, const char* fileName) 
 		out.writeTriangle(t);
 	}
 	out.close();
-	// cout << fileName << " written!"<< std::endl;
+    // Log::often() << fileName << " written!"<< std::endl;
 }
 
 /// Loads an STL file into a mesh object, from a binary or ASCII stl file.
@@ -209,7 +214,7 @@ size_t Meshy::readStlFile(const char* stlFilename)
 	} intdata;
 
 	size_t facecount = 0;
-
+	
 	uint8_t buf[512];
 	FILE *fHandle = fopen(stlFilename, "rb");
 	if (!fHandle)
@@ -228,8 +233,13 @@ size_t Meshy::readStlFile(const char* stlFilename)
 		MeshyException problem(msg.c_str());
 		throw (problem);
 	}
-	bool isBinary = true;
-	if (!strncasecmp((const char*) buf, "solid", 5)) {
+	bool isBinary = true;	
+	
+	string solid_string = "solid";
+	string test_string((const char*)buf, 5);
+	transform(test_string.begin(), test_string.end(), test_string.begin(), ::tolower);
+	
+	if (test_string != solid_string) {
 		isBinary = false;
 	}
 	if (isBinary) {
@@ -255,7 +265,7 @@ size_t Meshy::readStlFile(const char* stlFilename)
 		int countdown = (int)tricount;
 		while (!feof(fHandle) && countdown-- > 0) {
 			if (fread(tridata.bytes, 1, 3 * 4 * 4 + 2, fHandle) < 3 * 4 * 4 + 2) {
-				std::cout << __FUNCTION__ << "BREAKING" << endl;
+                Log::info() << __FUNCTION__ << "BREAKING" << endl;
 				break;
 			}
 			for (int i = 0; i < 3 * 4; i++) {
@@ -285,7 +295,7 @@ size_t Meshy::readStlFile(const char* stlFilename)
 			msg += stringify(this->triangleCount());
 			msg += ", faced:";
 			msg += stringify(facecount);
-			std::cout << msg;
+            Log::info() << msg;
 //			MeshyException problem(msg.c_str());
 //			throw (problem);
 		}
@@ -294,9 +304,9 @@ size_t Meshy::readStlFile(const char* stlFilename)
 	} else {
 		// ASCII STL file
 		// Gobble remainder of solid name line.
-		fgets((char*) buf, sizeof(buf), fHandle);
+                char* c = fgets((char*) buf, sizeof(buf), fHandle);
 		while (!feof(fHandle)) {
-			fscanf(fHandle, "%80s", buf);
+                        int q = fscanf(fHandle, "%80s", buf);
 			if (!strcasecmp((char*) buf, "endsolid")) {
 				break;
 			}
@@ -321,8 +331,9 @@ size_t Meshy::readStlFile(const char* stlFilename)
 				stringstream msg;
 				msg << "Error reading face " << facecount << " in file \"" << stlFilename << "\"";
 				MeshyException problem(msg.str().c_str());
-				cout << msg.str().c_str()<< endl;
-				cout << buf << endl;
+                                Log::info() << msg << endl;
+                                Log::info() << buf << endl;
+                                Log::info() << c << " " <<  q << endl;
 				throw(problem);
 			}
 			Triangle3 triangle(Vector3(v.x1, v.y1, v.z1),	Vector3(v.x2, v.y2, v.z2),	Vector3(v.x3, v.y3, v.z3));

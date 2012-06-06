@@ -11,15 +11,19 @@
 */
 
 
-
-#include "shrinky.h"
 #include <map>
 #include <set>
+
+
+#include "shrinky.h"
+#include "log.h"
+
 using namespace std;
 using namespace mgl;
+using namespace libthing;
 
 
-#define SHOUT(c) cout << c;
+
 
 
 void lengthCheck(const std::vector<LineSegment2> &segments, const char *msg)
@@ -28,13 +32,13 @@ void lengthCheck(const std::vector<LineSegment2> &segments, const char *msg)
 	{
 		const LineSegment2 &seg = segments[i];
 		Scalar l = seg.length();
-		// cout << msg << " seg[" << i << "] = " << seg << " l=" << l << endl;
+        // Log::often() << msg << " seg[" << i << "] = " << seg << " l=" << l << endl;
 		if(!( l > 0 ) )
 		{
-			SHOUT("Z")
+            Log::info() << "Z";
 			stringstream ss;
 			ss << msg << " Zero length: segment[" << i << "] = " << seg << endl;
-			ScadTubeFile::segment3(ss,"","segments", segments, 0, 0.1);
+			ScadDebugFile::segment3(ss,"","segments", segments, 0, 0.1);
 			ShrinkyException mixup(ss.str().c_str());
 			throw mixup;
 		}
@@ -42,12 +46,7 @@ void lengthCheck(const std::vector<LineSegment2> &segments, const char *msg)
 }
 
 
-//void connectivityFix(const std::vector<LineSegment2> &segments,
-//		Scalar tol,
-//		std::vector<LineSegment2> &outs)
-//{
-//
-//}
+
 
 void connectivityCheck( const std::vector<LineSegment2> &segments,
 						Scalar tol)
@@ -70,9 +69,9 @@ void connectivityCheck( const std::vector<LineSegment2> &segments,
 			ss << " Distance between segments " << dist.magnitude();
 
 			ss << endl;
-			SHOUT("C")
-			// cout << "|" << dist.magnitude() << "|" << prevSeg.length() << "|" << seg.length() << "|";
-			ScadTubeFile::segment3(ss,"","segments", segments, 0, 0.1);
+            Log::info() << "C";
+            // Log::often() << "|" << dist.magnitude() << "|" << prevSeg.length() << "|" << seg.length() << "|";
+			ScadDebugFile::segment3(ss,"","segments", segments, 0, 0.1);
 			ShrinkyException mixup(ss.str().c_str());
 			throw mixup;
 
@@ -110,7 +109,7 @@ void createConvexList(const std::vector<LineSegment2> &segments, std::vector<boo
         	Scalar distance = d.magnitude();
         	ss << "distance " << distance << endl;
         	ss << "SameSame " << isSameSame << endl;
-        	SHOUT("_C_")
+            Log::info() << "_C_";
         	ShrinkyException mixup(ss.str().c_str());
         	throw mixup;
 
@@ -124,8 +123,8 @@ void createConvexList(const std::vector<LineSegment2> &segments, std::vector<boo
 void segmentsDiagnostic(const char* title , const std::vector<LineSegment2> &segments)
 {
 
-	cout << endl << title << endl;
-	cout << "id\tconvex\tlength\tdistance\tangle\ta, b" << endl;
+    Log::info() << endl << title << endl;
+    Log::info() << "id\tconvex\tlength\tdistance\tangle\ta, b" << endl;
 
     for(size_t id = 0; id < segments.size(); id++)
     {
@@ -146,7 +145,7 @@ void segmentsDiagnostic(const char* title , const std::vector<LineSegment2> &seg
         Scalar angle = d.angleFromPoint2s(i, j, k);
         bool vertex = convexVertex(i,j,k);
 
-        cout << id << "\t" << vertex << "\t" << length << ",\t" << distance << ",\t" <<  angle << "\t" << seg.a << ", " << seg.b <<"\t" << endl;
+        Log::info() << id << "\t" << vertex << "\t" << length << ",\t" << distance << ",\t" <<  angle << "\t" << seg.a << ", " << seg.b <<"\t" << endl;
     }
 }
 
@@ -249,7 +248,7 @@ void AddReflexSegments(	const std::vector<LineSegment2> &segments,
 
 		if(!convexVertices[i])
 		{
-			Vector2 center = segments[i].a;
+                        // Vector2 center = segments[i].a;
 			Vector2 start  = trimmedInsets[prevId].b;
 			Vector2 end    = trimmedInsets[i].a;
 			LineSegment2 straight(start, end);
@@ -298,7 +297,7 @@ void Shrinky::openScadFile(const char *scadFileName)
 }
 
 Shrinky::Shrinky( const char *scadFileName)
-		:scadFileName(scadFileName), color(1),  counter(0), dz(0), scadZ(0)
+                :scadFileName(scadFileName), scadZ(0), color(1),  counter(0),  dz(0)
 {
     openScadFile(scadFileName);
 }
@@ -380,13 +379,13 @@ bool edgeCollapse(const LineSegment2& segment,
 
 void outMap(const std::multimap<Scalar, unsigned int> &collapsingSegments)
 {
-	cout << "collapse distance\tsegment id" << endl;
-	cout << "--------------------------------" << endl;
+    Log::info() << "collapse distance\tsegment id" << endl;
+    Log::info() << "--------------------------------" << endl;
 	for(std::multimap<Scalar, unsigned int>::const_iterator it= collapsingSegments.begin();
 			it != collapsingSegments.end(); it++)
 	{
 		const std::pair<Scalar, unsigned int>& seg = *it;
-		cout << "\t" <<seg.first<< ",\t" << seg.second << endl;
+        Log::info() << "\t" <<seg.first<< ",\t" << seg.second << endl;
 	}
 }
 
@@ -401,17 +400,17 @@ Scalar removeFirstCollapsedSegments(	const std::vector<LineSegment2> &originalSe
 	assert(relevantSegments.size()==0);
 
 	relevantSegments.reserve(originalSegments.size());
-	//cout << "NB of segments:" << originalSegments.size() << endl;
+    //Log::often() << "NB of segments:" << originalSegments.size() << endl;
 
 	multimap<Scalar, unsigned int> collapsingSegments;
 
-	// cout << endl << "removeFirstCollapsedSegments:: looking for collapses" << endl;
+    // Log::often() << endl << "removeFirstCollapsedSegments:: looking for collapses" << endl;
 	std::vector<LineSegment2> segments =  originalSegments;
 	for (unsigned int i=0; i < segments.size(); i++)
 	{
 		unsigned int nextId = i==segments.size()-1 ? 0 : i+1;
 
-		const LineSegment2 &nextSeg = segments[nextId];
+                //const LineSegment2 &nextSeg = segments[nextId];
 		const Vector2 &nextBisector = bisectors[nextId];
 
 		const LineSegment2 &currentSegment =  segments[i];
@@ -419,7 +418,7 @@ Scalar removeFirstCollapsedSegments(	const std::vector<LineSegment2> &originalSe
 
 		Scalar collapseDistance;
 		// check
-		//cout << "segment[" << i << "] = " << currentSegment << endl;
+        //Log::often() << "segment[" << i << "] = " << currentSegment << endl;
 		bool collapsed = edgeCollapse(	currentSegment,
 										currentBisector,
 										nextBisector,
@@ -427,7 +426,7 @@ Scalar removeFirstCollapsedSegments(	const std::vector<LineSegment2> &originalSe
 										collapseDistance);
 		if(collapsed)
 		{
-			//cout << " **  segment " << i << " ,collapse distance " <<  collapseDistance << endl;
+            //Log::often() << " **  segment " << i << " ,collapse distance " <<  collapseDistance << endl;
 			if(collapseDistance < insetDist)
 			{
 				// shortestCollapseDistance = collapseDistance;
@@ -450,16 +449,16 @@ Scalar removeFirstCollapsedSegments(	const std::vector<LineSegment2> &originalSe
 
 	std::multimap<Scalar, unsigned int>::iterator collapserator = collapsingSegments.begin();
 	Scalar collapseDistance = (*collapserator).first;
-	//cout << "COLLAPSED ID " << firstCollapse << endl;
+    //Log::often() << "COLLAPSED ID " << firstCollapse << endl;
 	std::set<unsigned int> toRemove;
 
-	// cout << "removeFirstCollapsedSegments:: who to remove" << endl;
+    // Log::often() << "removeFirstCollapsedSegments:: who to remove" << endl;
 	bool done = false;
 	do
 	{
 		Scalar d = (*collapserator).first;
 		unsigned int segmentId = (*collapserator).second;
-		//cout << "  " << d << ": Removing collapsed segment[" << segmentId <<"]=" << segments[segmentId] << endl;
+        //Log::often() << "  " << d << ": Removing collapsed segment[" << segmentId <<"]=" << segments[segmentId] << endl;
 		toRemove.insert(segmentId);
 		collapserator++;
 		if(collapserator == collapsingSegments.end() )
@@ -468,13 +467,13 @@ Scalar removeFirstCollapsedSegments(	const std::vector<LineSegment2> &originalSe
 		}
 		if(d > collapseDistance )
 		{
-		//	cout << "d(" << d << ") > collapseDistance (" << collapseDistance << endl;
+        //	Log::often() << "d(" << d << ") > collapseDistance (" << collapseDistance << endl;
 			done = true;
 		}
 	}
 	while(!done);
 
-	//cout << "removeFirstCollapsedSegments:: making new list" << endl;
+    //Log::often() << "removeFirstCollapsedSegments:: making new list" << endl;
 	for (unsigned int i=0; i < segments.size(); i++)
 	{
 		if(toRemove.find(i) ==  toRemove.end() )
@@ -489,7 +488,7 @@ Scalar removeFirstCollapsedSegments(	const std::vector<LineSegment2> &originalSe
 bool collinear(const Vector2 &a, const Vector2 &b, const Vector2 &c, Scalar tol)
 {
 	Scalar dot = ((b[0]- a[0]) * (c[1] - a[1]) - (c[0] - c[0]) * (b[1] - a[1]));
-	bool r = tequals(dot, 0, tol);
+	bool r = libthing::tequals(dot, 0, tol);
 	return r;
 }
 
@@ -508,50 +507,40 @@ void elongateAndTrimSegments(const std::vector<LineSegment2> & longSegments,
 		LineSegment2 &previousSegment = segments[prevId];
 		LineSegment2 &currentSegment =  segments[i];
 
-		//cout << "prev: seg[" << prevId << "] = " << previousSegment << endl;
-		//cout << "cur:  seg[" << i << "] = " << currentSegment << endl;
+        //Log::often() << "prev: seg[" << prevId << "] = " << previousSegment << endl;
+        //Log::often() << "cur:  seg[" << i << "] = " << currentSegment << endl;
 
 		if (previousSegment.b.tequals(currentSegment.a, tol))
 		{
 			// the job is already done.. segments are attached,
 			// nothing to see
-			// cout << "already attached" << endl;
+            // Log::often() << "already attached" << endl;
 			continue;
 		}
 
 		if(previousSegment.length()==0)
 		{
-			cout << "X";
+            Log::info() << "X";
 			continue;
 		}
 
 		if(currentSegment.length()==0)
 		{
-			cout << "Y";
+            Log::info() << "Y";
 			continue;
 		}
 
-
-/*
-		if(collinear(previousSegment.a, currentSegment.a, currentSegment.b, tol ))
-		{
-			Vector2 m = (previousSegment.a + currentSegment.b) * 0.5;
-			previousSegment.b = m;
-			currentSegment.a = m;
-			continue;
-		}
-*/
 		bool attached = attachSegments(previousSegment, currentSegment, elongation);
 		if(!attached)
 		{
-			cout << "!";
+            Log::info() << "!";
 			Vector2 m = (previousSegment.a + currentSegment.b) * 0.5;
 			previousSegment.b = m;
 			currentSegment.a = m;
 
 		}
-		// cout << "attach point " << currentSegment.a << endl;
-		//cout << endl;
+        // Log::often() << "attach point " << currentSegment.a << endl;
+        //Log::often() << endl;
 	}
 }
 
@@ -589,8 +578,8 @@ void createBisectors(const std::vector<LineSegment2>& segments,
 			ss << "This is not a closed polygon. segment[" << prevId << "].b = " << prevSeg.b ;
 			ss << " and segment[" << i << "].a = " << seg.a << " are distant by " << dist.magnitude();
 			ss << endl;
-			ScadTubeFile::segment3(ss,"","segments", segments, 0, 0.1);
-			SHOUT("O")
+			ScadDebugFile::segment3(ss,"","segments", segments, 0, 0.1);
+            Log::info() << "O";
 			ShrinkyException mixup(ss.str().c_str());
 			throw mixup;
 			// assert(0);
@@ -600,7 +589,7 @@ void createBisectors(const std::vector<LineSegment2>& segments,
 			stringstream ss;
 			ss << "Null bisector at segment [" << i << "] position=" << seg.a << endl;
 			ss << " previous_inset=" << prevInset << " inset=" << inset;
-			SHOUT("N")
+            Log::info() << "N";
 			ShrinkyException mixup(ss.str().c_str());
 			throw mixup;
 		}
@@ -666,13 +655,13 @@ void Shrinky::inset(const std::vector<LineSegment2>& originalSegments,
 	{
 		connectivityCheck(initialSegs, tol);
 
-		//cout << " ** distance to go: " <<  distanceToGo << endl;
+        //Log::often() << " ** distance to go: " <<  distanceToGo << endl;
 		finalInsets.clear();
 
 		Scalar distanceGone = insetStep(initialSegs, distanceToGo, tol, writePartialSteps, finalInsets);
 
 		distanceToGo -= distanceGone;
-		if( tequals(distanceToGo, 0, tol))
+		if( libthing::tequals(distanceToGo, 0, tol))
 		{
 			done = true;
 			return;
@@ -698,7 +687,7 @@ void removeZeroLengthSegments(const std::vector<LineSegment2> &inputSegments, st
 	for(unsigned int i = 0; i < inputSegments.size(); i++)
 	{
 		const LineSegment2 &seg = inputSegments[i];
-  		if(tequals(seg.squaredLength(), 0, tol) )
+  		if( libthing::tequals(seg.squaredLength(), 0, tol) )
 		{
 			continue;
 		}
@@ -709,7 +698,7 @@ void removeZeroLengthSegments(const std::vector<LineSegment2> &inputSegments, st
 Scalar Shrinky::insetStep(const std::vector<LineSegment2>& originalSegments,
 								Scalar insetDist,
 								Scalar continuityTolerance,
-								bool writePartialStep,
+                                                                bool ,//  writePartialStep,
 								std::vector<LineSegment2> &finalInsets)
 {
 	Scalar tol = 1e-6;
@@ -735,13 +724,13 @@ Scalar Shrinky::insetStep(const std::vector<LineSegment2>& originalSegments,
 
 	if(dumpSteps)segmentsDiagnostic("originalSegments", originalSegments);
 
-	Scalar insetStepDistance;
+        Scalar insetStepDistance =insetDist;
 	try
 	{
 	    if(scadFileName)
 	    {
 	        // OpenScad
-	        Scalar dz = 0.1;
+//	        Scalar dz = 0.1;
 	        stringstream coloredOutline;
 	        // Scalar color = (1.0 * i)/(shells-1);
 	        int color = 0;
@@ -755,12 +744,12 @@ Scalar Shrinky::insetStep(const std::vector<LineSegment2>& originalSegments,
 	    std::vector<LineSegment2> relevantSegments;
 	    if(originalSegments.size()>2)
 	    {
-	    	//cout << "...BISECTING..." << endl;
+            //Log::often() << "...BISECTING..." << endl;
 	    	std::vector<Vector2> bisectors;
 	    	createBisectors(originalSegments, continuityTolerance, bisectors);
 	    	writeScadBisectors(bisectors, originalSegments);
 
-	    	//cout << "...COLLAPSING..." << endl;
+            //Log::often() << "...COLLAPSING..." << endl;
 	    	insetStepDistance =  removeFirstCollapsedSegments(originalSegments, bisectors, insetDist, relevantSegments);
 	    	if(dumpSteps) segmentsDiagnostic("relevantSegments",relevantSegments);
 	    	writeScadSegments("relevants_", "color([0.5,0.5,0,1])", relevantSegments);
@@ -770,7 +759,7 @@ Scalar Shrinky::insetStep(const std::vector<LineSegment2>& originalSegments,
 		unsigned int relevantCount = relevantSegments.size();
 		if( relevantCount > 2)
 		{
-			//cout << "...INSETTING..." << endl;
+            //Log::often() << "...INSETTING..." << endl;
 			insetSegments(relevantSegments, insetStepDistance, insets);
 			if(dumpSteps) segmentsDiagnostic("Insets", insets);
 			writeScadSegments("raw_insets_", "color([1,0,0.4,1])", insets);
@@ -781,7 +770,7 @@ Scalar Shrinky::insetStep(const std::vector<LineSegment2>& originalSegments,
 		std::vector<LineSegment2> connected;
 		if(insets.size()>2)
 		{
-			//cout << "...ATTACHING..." << endl;
+            //Log::often() << "...ATTACHING..." << endl;
 			elongateAndTrimSegments(insets, elongation, connected);
 			writeScadSegments("connected_", "color([0.25,0.25,0.25,1])", connected);
 			// lengthCheck(finalInsets, "finalInsets");
@@ -796,16 +785,16 @@ Scalar Shrinky::insetStep(const std::vector<LineSegment2>& originalSegments,
 	}
 	catch(ShrinkyException &mixup)
 	{
-		mixup;
-		cout << " ^ "; //  << mixup.error << endl;
 
-		// cout << "ABORT MISSION!!! " << insetStepDistance << ": " << mixup.error << endl;
+            Log::info() <<    mixup.error << endl;
+
+        // Log::often() << "ABORT MISSION!!! " << insetStepDistance << ": " << mixup.error << endl;
 		// this is a lie...  but we want to break the loop
 		insetStepDistance = insetDist;
 		throw;
 	}
 	this->counter++;
-    return insetStepDistance;
+        return insetStepDistance;
 }
 
 
@@ -842,12 +831,12 @@ Shrinky::~Shrinky()
 }
 
 
-void createShells( const SegmentTable & outlinesSegments,
+void createShells( const SegmentVector & outlinesSegments,
 									   const std::vector<Scalar> &insetDistances,
 									   unsigned int sliceId,
 									   const char *scadFile,
 									   bool writeDebugScadFiles,
-									   std::vector<SegmentTable> & insetsForLoops)
+									   std::vector<SegmentVector> & insetsForLoops)
 
 {
 	assert(insetsForLoops.size() ==0);
@@ -861,18 +850,18 @@ void createShells( const SegmentTable & outlinesSegments,
     	const std::vector<LineSegment2> &outlineLoop = outlinesSegments[outlineId];
     	assert(outlineLoop.size() > 0);
 
-		insetsForLoops.push_back(SegmentTable());
+		insetsForLoops.push_back(SegmentVector());
 		assert(insetsForLoops.size() == outlineId + 1);
 
-		SegmentTable &insetTable = *insetsForLoops.rbegin(); // inset curves for a single loop
+		SegmentVector &insetTable = *insetsForLoops.rbegin(); // inset curves for a single loop
 		insetTable.reserve(nbOfShells);
 		for (unsigned int shellId=0; shellId < nbOfShells; shellId++)
 		{
 			insetTable.push_back(std::vector<LineSegment2>());
 		}
 
-		unsigned int segmentCountBefore =0;
-		unsigned int segmentCountAfter =0;
+                //unsigned int segmentCountBefore =0;
+                //unsigned int segmentCountAfter =0;
 
 		unsigned int currentShellIdForErrorReporting=0;
 		try
@@ -897,11 +886,11 @@ void createShells( const SegmentTable & outlinesSegments,
 			if(writeDebugScadFiles)
 			{
 				static int counter =0;
-				cout << endl;
-				cout << "----- ------ ERROR " << counter <<" ------ ------"<< endl;
-				cout << "sliceId: " <<  sliceId   << endl;
-				cout << "loopId : " <<  outlineId << endl;
-				cout << "shellId: " <<  currentShellIdForErrorReporting   << endl;
+                Log::info() << endl;
+                Log::info() << "----- ------ ERROR " << counter <<" ------ ------"<< endl;
+                Log::info() << "sliceId: " <<  sliceId   << endl;
+                Log::info() << "loopId : " <<  outlineId << endl;
+                Log::info() << "shellId: " <<  currentShellIdForErrorReporting   << endl;
 
 				stringstream ss;
 				ss << "_slice_" << sliceId << "_loop_" << outlineId << ".scad";
@@ -919,9 +908,9 @@ void createShells( const SegmentTable & outlinesSegments,
 
 
 					vector<LineSegment2> previousInsets  = outlineLoop;
-					cout << "Creating file: " << loopScadFile << endl;
-					cout << "	Number of points " << previousInsets.size() << endl;
-					ScadTubeFile::segment3(cout,"","segments", previousInsets, 0, 0.1);
+                                        Log::info() << "Creating file: " << loopScadFile << endl;
+                                        Log::info() << "	Number of points " << (int)previousInsets.size() << endl;
+					ScadDebugFile::segment3(cout,"","segments", previousInsets, 0, 0.1);
 					std::vector<LineSegment2> insets;
 					for (unsigned int shellId=0; shellId < nbOfShells; shellId++)
 					{
@@ -931,24 +920,25 @@ void createShells( const SegmentTable & outlinesSegments,
 						insets.clear(); // discard...
 					}
 				}
-				catch(ShrinkyException &messup2) // the same excpetion is thrown again
+                                catch(ShrinkyException &) // the same excpetion is thrown again
 				{
-					messup2; //ignore
-					cout << "saving " << endl;
+
+                                        Log::info() << "saving " << endl;
 				}
-				cout << "--- --- ERROR " << counter << " END --- ----" << endl;
+                                Log::info() << "--- --- ERROR " << counter << " END --- ----" << endl;
 				counter ++;
 			}
 		}
 	}
 }
 
-void mgl::createShellsForSliceUsingShrinky(const SegmentTable & outlinesSegments,
-										   const std::vector<Scalar> &insetDistances,
-										   unsigned int sliceId,
-										   const char *scadFile,
-										   bool writeDebugScadFiles,
-										   std::vector<SegmentTable> & insetsForLoops)
+//// creates shells from the segments table
+////
+void mgl::createShellsForSliceUsingShrinky(const SegmentVector & outlinesSegments,
+		const std::vector<Scalar> &insetDistances,
+		unsigned int sliceId,
+		const char *scadFile,
+		std::vector<SegmentVector> & insetsForLoops)
 
 {
 	assert(insetsForLoops.size() ==0);
@@ -956,8 +946,8 @@ void mgl::createShellsForSliceUsingShrinky(const SegmentTable & outlinesSegments
 
 	for (unsigned int shellId=0; shellId < nbOfShells; shellId++)
 	{
-		insetsForLoops.push_back(SegmentTable());
-		SegmentTable &currentShellTable = *insetsForLoops.rbegin();
+		insetsForLoops.push_back(SegmentVector());
+		SegmentVector &currentShellTable = *insetsForLoops.rbegin();
 		for(unsigned int outlineId=0; outlineId < outlinesSegments.size(); outlineId++)
 		{
 			try
@@ -966,7 +956,7 @@ void mgl::createShellsForSliceUsingShrinky(const SegmentTable & outlinesSegments
 				currentShellTable.push_back(std::vector<LineSegment2>());
 				std::vector<LineSegment2> &outlineShell = *currentShellTable.rbegin();
 				Scalar dist = insetDistances[shellId];
-				const SegmentTable *pInputs = NULL;
+				const SegmentVector *pInputs = NULL;
 				if(shellId == 0)
 				{
 					pInputs = &outlinesSegments;
@@ -975,7 +965,7 @@ void mgl::createShellsForSliceUsingShrinky(const SegmentTable & outlinesSegments
 				{
 					pInputs = &insetsForLoops[shellId-1];
 				}
-				const SegmentTable &inputTable = *pInputs;
+				const SegmentVector &inputTable = *pInputs;
 				const std::vector<LineSegment2> & inputSegments = inputTable[outlineId];
 
 				if(inputSegments.size()>2)
@@ -986,14 +976,14 @@ void mgl::createShellsForSliceUsingShrinky(const SegmentTable & outlinesSegments
 			}
 			catch(ShrinkyException &messup)
 			{
-				if(writeDebugScadFiles)
+				if(scadFile != 0x00)
 				{
 					static int counter =0;
-					cout << endl;
-					cout << "----- ------ ERROR " << counter <<" ------ ------"<< endl;
-					cout << "sliceId: " <<  sliceId   << endl;
-					cout << "loopId : " <<  outlineId << endl;
-					cout << "shellId: " <<  shellId   << endl;
+                    Log::info() << endl;
+                    Log::info() << "----- ------ ERROR " << counter <<" ------ ------"<< endl;
+                    Log::info() << "sliceId: " <<  sliceId   << endl;
+                    Log::info() << "loopId : " <<  outlineId << endl;
+                    Log::info() << "shellId: " <<  shellId   << endl;
 
 					stringstream ss;
 					ss << "_slice_" << sliceId << "_loop_" << outlineId << ".scad";
@@ -1010,23 +1000,23 @@ void mgl::createShellsForSliceUsingShrinky(const SegmentTable & outlinesSegments
 						Scalar dist = insetDistances[shellId];
 						if(shellId == 0)
 						{
-							const SegmentTable &inputTable = outlinesSegments;
+							const SegmentVector &inputTable = outlinesSegments;
 							const std::vector<LineSegment2> & inputSegments = inputTable[outlineId];
 							shrinky.inset(inputSegments, dist, outlineShell);
 						}
 						else
 						{
-							const SegmentTable &inputTable = insetsForLoops[shellId-1];
+							const SegmentVector &inputTable = insetsForLoops[shellId-1];
 							const std::vector<LineSegment2> & inputSegments = inputTable[outlineId];
 							shrinky.inset(inputSegments, dist, outlineShell);
 						}
 					}
-					catch(ShrinkyException &messup2) // the same excpetion is thrown again
+                                        catch(ShrinkyException &) // the same excpetion is thrown again
 					{
-						messup2; //ignore
-						cout << "saving " << endl;
+
+                                                Log::info() << "saving " << endl;
 					}
-					cout << "--- --- ERROR " << counter << " END --- ----" << endl;
+                                        Log::info() << "--- --- ERROR " << counter << " END --- ----" << endl;
 					counter ++;
 				}
 			}
